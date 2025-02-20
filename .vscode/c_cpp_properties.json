@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",        // Cesta k tvým souborům v projektu
+                "/usr/include",                 // Cesta k systémovým hlavičkám
+                "/usr/include/opencv4",         // Cesta k OpenCV hlavičkám
+                "/usr/include/GL",              // Cesta k GLEW (pokud je potřeba)
+                "/usr/local/include"            // Alternativní cesta pro knihovny
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/g++",        // Cesta k tvému C++ kompilátoru
+            "intelliSenseMode": "linux-gcc-x64",   // Mód pro IntelliSense
+            "browse": {
+                "path": [
+                    "/usr/include/opencv4",     // Cesta pro procházení k OpenCV
+                    "/usr/include/GL",          // Cesta pro procházení k GLEW
+                    "${workspaceFolder}/**"     // Cesta k tvým souborům v projektu
+                ]
+            }
+        }
+    ],
+    "version": 4
+}
