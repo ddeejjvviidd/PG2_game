@@ -1,0 +1,3 @@
+/home/ddeejjvviidd/TUL/6_semestr/PG2/pg2_project/build/CMakeFiles/pg2_project.dir
+/home/ddeejjvviidd/TUL/6_semestr/PG2/pg2_project/build/CMakeFiles/edit_cache.dir
+/home/ddeejjvviidd/TUL/6_semestr/PG2/pg2_project/build/CMakeFiles/rebuild_cache.dir
