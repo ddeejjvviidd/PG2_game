@@ -34,7 +34,7 @@ int main()
 
     // JSON
     {
-        std::ifstream sett_file("../app_settings.json");
+        std::ifstream sett_file("app_settings.json");
         nlohmann::json settings = nlohmann::json::parse(sett_file);
 
         std::cout << settings["appname"] << '\n';
@@ -72,6 +72,10 @@ int main()
     {
         glfwInit();
         auto window = glfwCreateWindow(800, 600, "test", NULL, NULL);
+
+        while (!glfwWindowShouldClose(window)) {
+            glfwPollEvents();
+        }
 
         glfwDestroyWindow(window);
         glfwTerminate();
