@@ -34,7 +34,7 @@ int main()
 
     // JSON
     {
-        std::ifstream sett_file("app_settings.json");
+        std::ifstream sett_file("../app_settings.json");
         nlohmann::json settings = nlohmann::json::parse(sett_file);
 
         std::cout << settings["appname"] << '\n';
