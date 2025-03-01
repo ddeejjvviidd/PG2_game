@@ -11,9 +11,10 @@ find_package(GLEW REQUIRED)
 find_package(glm REQUIRED)
 find_package(nlohmann_json 3.2.0 REQUIRED)
 
-# Find OpenCV manually from C:\opencv
-# IMPORTANT! Davide, zakomentuj prosím následující řádek!
-set(OpenCV_DIR "C:/opencv/build")  # Point to the build directory
+# Set OpenCV directory based on OS
+if(WIN32)  # WIN32 is true on Windows
+    set(OpenCV_DIR "C:/opencv/build")  # Your Windows path
+endif()
 find_package(OpenCV REQUIRED)
 
 # Add executable
