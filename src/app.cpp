@@ -13,13 +13,15 @@
 #include <string>
 
 // OpenCV (does not depend on GL)
-#include <opencv2\opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 // OpenGL Extension Wrangler: allow all multiplatform GL functions
 #include <GL/glew.h>
 // WGLEW = Windows GL Extension Wrangler (change for different platform)
 // platform specific functions (in this case Windows)
-#include <GL/wglew.h>
+#ifdef _WIN32
+	#include <GL/wglew.h>
+#endif
 
 // GLFW toolkit
 // Uses GL calls to open GL context, i.e. GLEW __MUST__ be first.
@@ -116,7 +118,9 @@ bool App::init()
 		// init glew
 		// http://glew.sourceforge.net/basic.html
 		glewInit();
-		wglewInit();
+		#ifdef _WIN32
+			wglewInit();
+		#endif
 		// if (not_success)
 		//  throw std::runtime_error("something went bad");
 
