@@ -2,15 +2,25 @@
 
 #include "app.hpp"
 
-// define our application
-App app;
-
 int main()
 {
+    std::cout << "Entering main...\n" << std::flush;
     try
     {
+        // define our application
+        std::cout << "Creating App object...\n" << std::flush;
+        App app;
+        std::cout << "App constructed...\n" << std::flush;
+        std::cout << "Calling init...\n" << std::flush;
         if (app.init())
+        {
             return app.run();
+        }
+        else
+        {
+            std::cerr << "Initialization failed\n";
+            return EXIT_FAILURE;
+        }
     }
     catch (std::exception const &e)
     {

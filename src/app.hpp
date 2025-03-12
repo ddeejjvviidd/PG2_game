@@ -3,6 +3,7 @@
 #include <GL/glew.h>    // Add this to ensure GLEW comes first
 #include "assets.hpp"   // Already includes glew.h, but we make it explicit
 #include <GLFW/glfw3.h> // GLFW comes after GLEW
+#include "Mesh.hpp"
 #include <string>
 #include <vector>
 
@@ -25,12 +26,13 @@ public:
 
     GLfloat r{1.0f}, g{0.0f}, b{0.0f}, a{1.0f};
 
-    std::vector<vertex> triangle_vertices =
-        {
-            {{0.0f, 0.5f, 0.0f}},
-            {{0.5f, -0.5f, 0.0f}},
-            {{-0.5f, -0.5f, 0.0f}}};
-
+    // std::vector<vertex> triangle_vertices =
+    //     {
+    //         {{0.0f, 0.5f, 0.0f}},
+    //         {{0.5f, -0.5f, 0.0f}},
+    //         {{-0.5f, -0.5f, 0.0f}}};
+    Mesh mesh;
+    
     ~App();
 
 private:

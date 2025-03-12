@@ -18,7 +18,7 @@ endif()
 find_package(OpenCV REQUIRED)
 
 # Add executable
-add_executable(pg2_project src/main.cpp src/app.cpp src/gl_err_callback.cpp src/ShaderProgram.cpp)
+add_executable(pg2_project src/main.cpp src/app.cpp src/gl_err_callback.cpp src/ShaderProgram.cpp src/OBJloader.cpp)
 
 # Link libraries (GLM is header-only, so no linking needed)
 if(WIN32)

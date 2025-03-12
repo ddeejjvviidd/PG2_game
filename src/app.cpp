@@ -37,6 +37,8 @@
 #include "gl_err_callback.h"
 #include "assets.hpp"
 #include "ShaderProgram.hpp"
+#include "Mesh.hpp"
+#include "OBJloader.hpp"
 
 using json = nlohmann::json; // Alias for convenience
 
@@ -49,12 +51,14 @@ App::App()
 
 bool App::init()
 {
+	std::cout << "Starting init...\n";
 	try
 	{
 		// initialization code
 		//...
 		// init glfw
 		// https://www.glfw.org/documentation.html
+		std::cout << "Initializing GLFW...\n";
 		glfwInit();
 
 		glfwSetErrorCallback(error_callback);
@@ -99,6 +103,7 @@ bool App::init()
 		}
 
 		// Explicitly request OpenGL 4.6 Compatibility Profile (default-like)
+		std::cout << "Creating window...\n";
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE); // Try CORE_PROFILE if needed
@@ -106,6 +111,10 @@ bool App::init()
 		// open window (GL canvas) with no special properties
 		// https://www.glfw.org/docs/latest/quick.html#quick_create_window
 		window = glfwCreateWindow(resX, resY, appname.c_str(), NULL, NULL);
+		if (!window) {
+            std::cerr << "Failed to create GLFW window\n";
+            throw std::runtime_error("GLFW window creation failed");
+        }
 		glfwMakeContextCurrent(window);
 		glfwSetWindowUserPointer(window, this);
 		glfwSetScrollCallback(window, [](GLFWwindow *w, double x, double y)
@@ -118,6 +127,7 @@ bool App::init()
 
 		// init glew
 		// http://glew.sourceforge.net/basic.html
+		std::cout << "Initializing GLEW...\n";
 		glewInit();
 		#ifdef _WIN32
 			wglewInit();
@@ -173,6 +183,7 @@ bool App::init()
 		// Set initial VSync state
 		glfwSwapInterval(vsyncEnabled ? 1 : 0);
 
+		std::cout << "Calling init_assets...\n";
 		init_assets();
 	}
 	catch (std::exception const &e)
@@ -193,21 +204,40 @@ void App::init_assets(void)
     ShaderProgram my_shader = ShaderProgram("resources/basic.vert", "resources/basic.frag");
 	shader_prog_ID = my_shader.getID();
 
-	// Create VAO + data description (just envelope, or container...)
-	glCreateVertexArrays(1, &VAO_ID);
+	// Load triangle.obj
+	std::vector<glm::vec3> out_vertices;
+	std::vector<glm::vec2> out_uvs;
+	std::vector<glm::vec3> out_normals;
 
-	GLint position_attrib_location = glGetAttribLocation(shader_prog_ID, "attribute_Position");
+	const char* obj_path = "resources/objects/triangle.obj";
+	if (!loadOBJ(obj_path, out_vertices, out_uvs, out_normals)) {
+		std::cerr << "Failed to load " << obj_path << std::endl;
+		throw std::runtime_error("OBJ loading failed");
+	}
 
-	glEnableVertexArrayAttrib(VAO_ID, position_attrib_location);
-	glVertexArrayAttribFormat(VAO_ID, position_attrib_location, 3, GL_FLOAT, GL_FALSE, offsetof(vertex, position));
-	glVertexArrayAttribBinding(VAO_ID, position_attrib_location, 0); // (GLuint vaobj, GLuint attribindex, GLuint bindingindex)
+	// Convert loaded data to Vertex format
+	std::vector<Vertex> vertices;
+	if (out_vertices.size() != out_uvs.size() || out_vertices.size() != out_normals.size()) {
+		std::cerr << "Mismatch in vertex, UV, or normal counts from OBJ file\n";
+		throw std::runtime_error("Invalid OBJ data");
+	}
 
-	// Create and fill data
-	glCreateBuffers(1, &VBO_ID);
-	glNamedBufferData(VBO_ID, triangle_vertices.size() * sizeof(vertex), triangle_vertices.data(), GL_STATIC_DRAW);
+	for (size_t i = 0; i < out_vertices.size(); ++i) {
+		Vertex v;
+		v.Position = out_vertices[i];
+		v.Normal = out_normals[i];
+		v.TexCoords = out_uvs[i];
+		vertices.push_back(v);
+	}
 
-	// Connect together
-	glVertexArrayVertexBuffer(VAO_ID, 0, VBO_ID, 0, sizeof(vertex)); // (GLuint vaobj, GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride)
+	// Generate indices (simple sequential since OBJloader unrolls to direct vertices)
+	std::vector<GLuint> indices;
+	for (GLuint i = 0; i < static_cast<GLuint>(vertices.size()); ++i) {
+		indices.push_back(i);
+	}
+    // Create a Mesh instance
+    mesh = Mesh(GL_TRIANGLES, my_shader, vertices, indices, glm::vec3(0.0f), glm::vec3(0.0f));
+    VAO_ID = mesh.getVAO(); // For now, store VAO_ID to use in run (you'll need to make VAO public or add a getter later)
 }
 
 int App::run(void)
@@ -264,7 +294,9 @@ int App::run(void)
 			glBindVertexArray(VAO_ID);
 
 			// draw all VAO data
-			glDrawArrays(GL_TRIANGLES, 0, triangle_vertices.size());
+			// glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+			// Draw using indices
+            glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh.getIndexCount()), GL_UNSIGNED_INT, 0);
 
 			// Poll for and process events
 			glfwPollEvents();
