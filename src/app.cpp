@@ -36,6 +36,7 @@
 #include "app.hpp"
 #include "gl_err_callback.h"
 #include "assets.hpp"
+#include "ShaderProgram.hpp"
 
 using json = nlohmann::json; // Alias for convenience
 
@@ -186,49 +187,11 @@ bool App::init()
 
 void App::init_assets(void)
 {
-	//
-	// Initialize pipeline: compile, link and use shaders
-	//
 
-	// SHADERS - define & compile & link
-	const char *vertex_shader =
-		"#version 460 core\n"
-		"in vec3 attribute_Position;"
-		"void main() {"
-		"  gl_Position = vec4(attribute_Position, 1.0);"
-		"}";
-
-	const char *fragment_shader =
-		"#version 460 core\n"
-		"uniform vec4 uniform_Color;"
-		"out vec4 FragColor;"
-		"void main() {"
-		"  FragColor = uniform_Color;"
-		"}";
-
-	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vs, 1, &vertex_shader, NULL);
-	glCompileShader(vs);
-
-	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fs, 1, &fragment_shader, NULL);
-	glCompileShader(fs);
-
-	shader_prog_ID = glCreateProgram();
-	glAttachShader(shader_prog_ID, fs);
-	glAttachShader(shader_prog_ID, vs);
-	glLinkProgram(shader_prog_ID);
-
-	// now we can delete shader parts (they can be reused, if you have more shaders)
-	// the final shader program already linked and stored separately
-	glDetachShader(shader_prog_ID, fs);
-	glDetachShader(shader_prog_ID, vs);
-	glDeleteShader(vs);
-	glDeleteShader(fs);
-
-	//
-	// Create and load data into GPU using OpenGL DSA (Direct State Access)
-	//
+	// shader: load, compile, link, initialize params
+    // (may be moved to global variables - if all models use same shader)
+    ShaderProgram my_shader = ShaderProgram("resources/basic.vert", "resources/basic.frag");
+	shader_prog_ID = my_shader.getID();
 
 	// Create VAO + data description (just envelope, or container...)
 	glCreateVertexArrays(1, &VAO_ID);
@@ -295,6 +258,7 @@ int App::run(void)
 			// set uniform parameter for shader
 			// (try to change the color in key callback)
 			glUniform4f(uniform_color_location, r, g, b, a);
+			
 
 			// bind 3d object data
 			glBindVertexArray(VAO_ID);
