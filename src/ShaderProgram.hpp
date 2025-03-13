@@ -5,6 +5,8 @@
 
 #include <GL/glew.h> 
 
+#include <vector>
+
 class ShaderProgram {
 public:
 	// you can add more constructors for pipeline with GS, TS etc.
