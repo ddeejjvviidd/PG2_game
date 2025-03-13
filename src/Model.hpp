@@ -15,7 +15,7 @@ public:
     std::string name;
     glm::vec3 origin{};
     glm::vec3 orientation{};
-    ShaderProgram shader{0};
+    ShaderProgram shader{};
     
     Model(const std::filesystem::path & filename, ShaderProgram shader) {
         // load mesh (all meshes) of the model, (in the future: load material of each mesh, load textures...)
@@ -31,7 +31,7 @@ public:
     
     void draw(glm::vec3 const & offset = glm::vec3(0.0), glm::vec3 const & rotation = glm::vec3(0.0f)) {
         // call draw() on mesh (all meshes)
-        for (auto const& mesh : meshes) {
+        for (auto & mesh : meshes) {
             mesh.draw(origin+offset, orientation+rotation);
         }
     }
