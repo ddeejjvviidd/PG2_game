@@ -127,7 +127,9 @@ bool App::init()
 								   { static_cast<App *>(glfwGetWindowUserPointer(w))->mouse_button_callback(w, button, action, mods); });
 
 		glfwSetFramebufferSizeCallback(window, [](GLFWwindow *w, int width, int height)
-									   { static_cast<App *>(glfwGetWindowUserPointer(w))->framebuffer_size_callback(w, width, height); }); // Use lambda to bind this
+									   { static_cast<App *>(glfwGetWindowUserPointer(w))->framebuffer_size_callback(w, width, height); });
+		glfwSetCursorPosCallback(window, [](GLFWwindow *w, double x, double y)
+								 { static_cast<App *>(glfwGetWindowUserPointer(w))->cursor_position_callback(w, x, y); });
 
 		// init glew
 		// http://glew.sourceforge.net/basic.html
@@ -217,6 +219,9 @@ void App::init_assets(void)
 	float aspectRatio = static_cast<float>(windowWidth) / windowHeight;
 	projectionMatrix = glm::perspective(glm::radians(fov), aspectRatio, 0.1f, 20000.0f);
 	glViewport(0, 0, windowWidth, windowHeight);
+
+	// Initialize cursor position
+	glfwGetCursorPos(window, &cursorLastX, &cursorLastY);
 }
 
 int App::run(void)
@@ -226,10 +231,16 @@ int App::run(void)
 
 	double lastTime = glfwGetTime(); // Time of last FPS update
 	int frameCount = 0;				 // Number of frames since last update
+	const double targetFrameTime = 1.0 / 60.0; // Target 16.67ms per frame for 60 FPS
 
 	try
 	{
 		glEnable(GL_DEPTH_TEST);
+		glCullFace(GL_BACK);
+		glEnable(GL_CULL_FACE);
+
+		// Disable cursor for FPS-style control
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 		// Activate shader program. There is only one program, so activation can be out of the loop.
 		// In more realistic scenarios, you will activate different shaders for different 3D objects.
@@ -241,51 +252,40 @@ int App::run(void)
 			std::cerr << "Uniform location is not found in active shader program. Did you forget to activate it?\n";
 		}
 
-		// Hardcoded view matrix (camera at origin looking down -Z)
-		glm::mat4 viewMatrix = glm::identity<glm::mat4>();
-
 		while (!glfwWindowShouldClose(window))
 		{
-			// Measure time
 			double currentTime = glfwGetTime();
+			float deltaTime = static_cast<float>(currentTime - lastTime);
 			frameCount++;
 
-			// Update FPS every second
 			if (currentTime - lastTime >= 1.0)
 			{
 				double fps = frameCount / (currentTime - lastTime);
 				std::string title = "FPS: " + std::to_string(static_cast<int>(fps + 0.5)) +
 									" | VSync: " + (vsyncEnabled ? "On" : "Off");
 				glfwSetWindowTitle(window, title.c_str());
-
 				frameCount = 0;
 				lastTime = currentTime;
 			}
 
-			// Clear OpenGL canvas, both color buffer and Z-buffer
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			glUseProgram(shader_prog_ID);
+			// Update camera position based on input
+			glm::vec3 movement = camera.ProcessInput(window, deltaTime);
+			camera.Position += movement;
 
-			// set uniform parameter for shader
-			// (try to change the color in key callback)
+			glUseProgram(shader_prog_ID);
 			glUniform4f(uniform_color_location, r, g, b, a);
 
-			// Set view matrix: camera at (0, 0, 5) looking at (0, 0, 0)
-            glm::mat4 viewMatrix = glm::lookAt(
-                glm::vec3(0.0f, 0.0f, 5.0f), // Camera position
-                glm::vec3(0.0f, 0.0f, 0.0f), // Look at origin
-                glm::vec3(0.0f, 1.0f, 0.0f)  // Up vector
-            );
-            glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
-            glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+			// Set view and projection matrices
+			glm::mat4 viewMatrix = camera.GetViewMatrix();
+			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-            model.update(0.016f);
-            model.draw();
+			model.update(deltaTime); // Use deltaTime for consistent rotation speed
+			model.draw();
 
-			// Poll for and process events
 			glfwPollEvents();
-			// Swap front and back buffers
 			glfwSwapBuffers(window);
 		}
 	}
@@ -313,11 +313,21 @@ void App::error_callback(int error, const char *description)
 	std::cerr << "GLFW Error " << error << ": " << description << '\n';
 }
 
+void App::cursor_position_callback(GLFWwindow *window, double xpos, double ypos)
+{
+	// Calculate mouse offset
+	double xoffset = xpos - cursorLastX;
+	double yoffset = ypos - cursorLastY; // No need to invert unless your coordinate system requires it
+	cursorLastX = xpos;
+	cursorLastY = ypos;
+
+	camera.ProcessMouseMovement(static_cast<float>(xoffset), static_cast<float>(yoffset));
+}
+
 void App::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
-	// Adjust FOV with scroll (e.g., zoom in/out)
-	fov -= static_cast<float>(yoffset) * 5.0f; // 5 degrees per scroll step
-	fov = glm::clamp(fov, 10.0f, 120.0f);	   // Limit FOV range
+	fov -= static_cast<float>(yoffset) * 5.0f;
+	fov = glm::clamp(fov, 10.0f, 120.0f);
 	float aspectRatio = static_cast<float>(windowWidth) / windowHeight;
 	projectionMatrix = glm::perspective(glm::radians(fov), aspectRatio, 0.1f, 20000.0f);
 	std::cout << "FOV: " << fov << "\n";
