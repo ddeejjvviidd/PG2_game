@@ -248,6 +248,9 @@ int App::run(void)
 		{
 			// Measure time
 			double currentTime = glfwGetTime();
+			float totalTime = static_cast<float>(currentTime - startTime);
+			
+
 			frameCount++;
 
 			// Update FPS every second
@@ -280,7 +283,7 @@ int App::run(void)
             glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
             glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-            model.update(0.016f);
+            model.update(totalTime);
             model.draw();
 
 			// Poll for and process events

@@ -62,6 +62,8 @@ private:
     float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
     bool vsyncEnabled = true;
 
+    double startTime = glfwGetTime();
+
     // Transformation-related members
     glm::mat4 projectionMatrix;
     float fov = 60.0f;      // Field of view in degrees
