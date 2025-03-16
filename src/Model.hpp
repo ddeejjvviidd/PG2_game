@@ -72,16 +72,18 @@ public:
     // update position etc. based on running time
     void update(const float totalTime)
     {
-        // origin += glm::vec3(3,0,0) * delta_t; // s = s0 + v*dt
-        // Rotate around the Y-axis (in degrees)
-        //orientation.y += 45.0f * delta_t; // 45 degrees per second
-        // Keep orientation.y in [0, 360) to avoid overflow (optional)
-        //if (orientation.y >= 360.0f)
-        //{
-        //    orientation.y -= 360.0f;
-        //}
-
-        orientation.y = fmod(totalTime * 45.0f, 360.0f);
+        if (name == "cube")
+        {
+            // Rotate around all axes
+            orientation.x = fmod(totalTime * 30.0f, 360.0f); // X-axis: 30°/sec
+            orientation.y = fmod(totalTime * 45.0f, 360.0f); // Y-axis: 45°/sec (same as triangles)
+            orientation.z = fmod(totalTime * 60.0f, 360.0f); // Z-axis: 60°/sec
+        }
+        else
+        {
+            // Triangles rotate only around Y-axis
+            orientation.y = fmod(totalTime * 45.0f, 360.0f);
+        }
     }
 
     void draw(glm::vec3 const &offset = glm::vec3(0.0), glm::vec3 const &rotation = glm::vec3(0.0f))

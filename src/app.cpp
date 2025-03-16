@@ -215,12 +215,14 @@ void App::init_assets(void)
 	models.emplace_back("resources/objects/triangle.obj", my_shader); // Back (0, 0, 2)
 	models.emplace_back("resources/objects/triangle.obj", my_shader); // Left (-2, 0, 0)
 	models.emplace_back("resources/objects/triangle.obj", my_shader); // Right (2, 0, 0)
+	models.emplace_back("resources/objects/cube.obj", my_shader);	  // Above (0, 2, 0)
 
 	// Set positions
 	models[0].origin = glm::vec3(0.0f, 0.0f, 0.0f);	 // Front
 	models[1].origin = glm::vec3(0.0f, 0.0f, 2.0f);	 // Back
-	models[2].origin = glm::vec3(-2.0f, 0.0f, 0.0f); // Left
-	models[3].origin = glm::vec3(2.0f, 0.0f, 0.0f);	 // Right
+	models[2].origin = glm::vec3(-1.0f, 0.0f, 1.0f); // Left
+	models[3].origin = glm::vec3(1.0f, 0.0f, 1.0f);	 // Right
+	models[4].origin = glm::vec3(0.0f, 2.0f, 0.0f);	 // Cube above
 
 	// Initialize projection matrix
 	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
