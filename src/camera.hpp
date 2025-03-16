@@ -13,9 +13,9 @@ public:
     glm::vec3 Right;
     glm::vec3 Up; // Camera local UP vector
 
-    GLfloat Yaw = -90.0f;   // Start looking along -Z
+    GLfloat Yaw = -90.0f; // Start looking along -Z
     GLfloat Pitch = 0.0f;
-    GLfloat Roll = 0.0f;    // Not used for now, but included for completeness
+    GLfloat Roll = 0.0f; // Not used for now, but included for completeness
 
     // Camera options
     GLfloat MovementSpeed = 0.01f;
@@ -32,7 +32,7 @@ public:
         return glm::lookAt(this->Position, this->Position + this->Front, this->Up);
     }
 
-    glm::vec3 ProcessInput(GLFWwindow* window, GLfloat deltaTime)
+    glm::vec3 ProcessInput(GLFWwindow *window, GLfloat deltaTime)
     {
         glm::vec3 direction{0};
 
@@ -45,9 +45,9 @@ public:
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             direction += Right; // Right
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-            direction += Up;    // Up
+            direction += Up; // Up
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-            direction -= Up;    // Down
+            direction -= Up; // Down
 
         // Normalize direction only if non-zero to avoid division by zero
         if (glm::length(direction) > 0.0f)

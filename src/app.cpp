@@ -209,8 +209,18 @@ void App::init_assets(void)
 	// (may be moved to global variables - if all models use same shader)
 	ShaderProgram my_shader = ShaderProgram("resources/basic.vert", "resources/basic.frag");
 	shader_prog_ID = my_shader.getID();
-	// Load model
-	model = Model("resources/objects/triangle.obj", my_shader);
+
+	// Create four triangles at different positions
+	models.emplace_back("resources/objects/triangle.obj", my_shader); // Front (0, 0, 0)
+	models.emplace_back("resources/objects/triangle.obj", my_shader); // Back (0, 0, 2)
+	models.emplace_back("resources/objects/triangle.obj", my_shader); // Left (-2, 0, 0)
+	models.emplace_back("resources/objects/triangle.obj", my_shader); // Right (2, 0, 0)
+
+	// Set positions
+	models[0].origin = glm::vec3(0.0f, 0.0f, 0.0f);	 // Front
+	models[1].origin = glm::vec3(0.0f, 0.0f, 2.0f);	 // Back
+	models[2].origin = glm::vec3(-2.0f, 0.0f, 0.0f); // Left
+	models[3].origin = glm::vec3(2.0f, 0.0f, 0.0f);	 // Right
 
 	// Initialize projection matrix
 	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
@@ -240,9 +250,6 @@ int App::run(void)
 
 		// Disable cursor for FPS-style control
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-		// Activate shader program. There is only one program, so activation can be out of the loop.
-		// In more realistic scenarios, you will activate different shaders for different 3D objects.
 
 		// Get uniform location in GPU program. This will not change, so it can be moved out of the game loop.
 		GLint uniform_color_location = glGetUniformLocation(shader_prog_ID, "uniform_Color");
@@ -290,8 +297,12 @@ int App::run(void)
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-			model.update(totalTime);
-			model.draw();
+			// Update and draw all four triangles
+			for (auto &model : models)
+			{
+				model.update(totalTime);
+				model.draw();
+			}
 
 			// Poll for and process events
 			glfwPollEvents();
