@@ -74,7 +74,7 @@ private:
     int windowHeight = 600;
 
     // Camera-related members
-    Camera camera{glm::vec3(0.0f, 0.0f, 5.0f)}; // Start 5 units back
+    Camera camera{glm::vec3(0.0f, 0.0f, 1.0f)}; // Start 1 unit back
     double cursorLastX = 0.0;
     double cursorLastY = 0.0;
 

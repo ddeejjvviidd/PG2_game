@@ -196,6 +196,7 @@ public:
         modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.x), glm::vec3(1.0f, 0.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.y), glm::vec3(0.0f, 1.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+        modelMatrix = glm::scale(modelMatrix, glm::vec3(0.1f)); // Adjust scale if needed
 
         GLint modelLoc = glGetUniformLocation(shader.getID(), "uM_m"); // Changed to uM_m
         if (modelLoc != -1)

@@ -235,8 +235,8 @@ int App::run(void)
 	try
 	{
 		glEnable(GL_DEPTH_TEST);
-		glCullFace(GL_BACK);
-		glEnable(GL_CULL_FACE);
+		// glCullFace(GL_BACK);
+		// glEnable(GL_CULL_FACE);
 
 		// Disable cursor for FPS-style control
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
