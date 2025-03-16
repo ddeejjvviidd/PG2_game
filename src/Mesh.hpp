@@ -127,6 +127,57 @@ public:
     GLuint getVAO() const { return VAO; }
     GLsizei getIndexCount() const { return static_cast<GLsizei>(indices.size()); } // Getter for index count
 
+    // void draw(glm::vec3 const &offset, glm::vec3 const &rotation) const
+    // {
+    //     if (VAO == 0)
+    //     {
+    //         std::cerr << "VAO not initialized!\n";
+    //         return;
+    //     }
+
+    //     shader.activate();
+
+    //     // for future use: set uniform variables: position, textures, etc...
+    //     // set texture id etc...
+    //     // if (texture_id > 0) {
+    //     //    ...
+    //     //}
+
+    //     // Compute the model matrix based on origin, offset, orientation, and rotation
+    //     glm::mat4 model = glm::mat4(1.0f);
+    //     model = glm::translate(model, origin + offset); // Apply translation
+
+    //     // Apply rotations (assuming rotation is in degrees for simplicity)
+    //     model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f)); // X-axis
+    //     model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)); // Y-axis
+    //     model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)); // Z-axis
+
+    //     // Assuming orientation is also in degrees (apply model's own orientation)
+    //     model = glm::rotate(model, glm::radians(orientation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    //     model = glm::rotate(model, glm::radians(orientation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    //     model = glm::rotate(model, glm::radians(orientation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    //     // Set the model matrix uniform in the shader (assuming the shader has a "model" uniform)
+    //     GLint modelLoc = glGetUniformLocation(shader.getID(), "model");
+    //     if (modelLoc != -1) // Check if the uniform exists
+    //     {
+    //         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    //     }
+    //     else
+    //     {
+    //         std::cerr << "Warning: 'model' uniform not found in shader\n";
+    //     }
+
+    //     // Bind the VAO
+    //     glBindVertexArray(VAO);
+
+    //     // Draw the mesh using indexed drawing
+    //     glDrawElements(primitive_type, getIndexCount(), GL_UNSIGNED_INT, 0);
+
+    //     // Unbind the VAO (optional, but good practice)
+    //     glBindVertexArray(0);
+    // }
+
     void draw(glm::vec3 const &offset, glm::vec3 const &rotation) const
     {
         if (VAO == 0)
@@ -137,44 +188,27 @@ public:
 
         shader.activate();
 
-        // for future use: set uniform variables: position, textures, etc...
-        // set texture id etc...
-        // if (texture_id > 0) {
-        //    ...
-        //}
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
+        modelMatrix = glm::translate(modelMatrix, origin + offset);
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-        // Compute the model matrix based on origin, offset, orientation, and rotation
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, origin + offset); // Apply translation
-
-        // Apply rotations (assuming rotation is in degrees for simplicity)
-        model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f)); // X-axis
-        model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)); // Y-axis
-        model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)); // Z-axis
-
-        // Assuming orientation is also in degrees (apply model's own orientation)
-        model = glm::rotate(model, glm::radians(orientation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(orientation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(orientation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-        // Set the model matrix uniform in the shader (assuming the shader has a "model" uniform)
-        GLint modelLoc = glGetUniformLocation(shader.getID(), "model");
-        if (modelLoc != -1) // Check if the uniform exists
+        GLint modelLoc = glGetUniformLocation(shader.getID(), "uM_m"); // Changed to uM_m
+        if (modelLoc != -1)
         {
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
         }
         else
         {
-            std::cerr << "Warning: 'model' uniform not found in shader\n";
+            std::cerr << "Warning: 'uM_m' uniform not found in shader\n";
         }
 
-        // Bind the VAO
         glBindVertexArray(VAO);
-
-        // Draw the mesh using indexed drawing
         glDrawElements(primitive_type, getIndexCount(), GL_UNSIGNED_INT, 0);
-
-        // Unbind the VAO (optional, but good practice)
         glBindVertexArray(0);
     }
 

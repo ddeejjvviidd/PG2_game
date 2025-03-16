@@ -126,6 +126,9 @@ bool App::init()
 		glfwSetMouseButtonCallback(window, [](GLFWwindow *w, int button, int action, int mods)
 								   { static_cast<App *>(glfwGetWindowUserPointer(w))->mouse_button_callback(w, button, action, mods); });
 
+		glfwSetFramebufferSizeCallback(window, [](GLFWwindow *w, int width, int height)
+									   { static_cast<App *>(glfwGetWindowUserPointer(w))->framebuffer_size_callback(w, width, height); }); // Use lambda to bind this
+
 		// init glew
 		// http://glew.sourceforge.net/basic.html
 		std::cout << "Initializing GLEW...\n";
@@ -206,6 +209,14 @@ void App::init_assets(void)
 	shader_prog_ID = my_shader.getID();
 	// Load model
 	model = Model("resources/objects/triangle.obj", my_shader);
+
+	// Initialize projection matrix
+	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+	if (windowHeight <= 0)
+		windowHeight = 1; // Avoid division by 0
+	float aspectRatio = static_cast<float>(windowWidth) / windowHeight;
+	projectionMatrix = glm::perspective(glm::radians(fov), aspectRatio, 0.1f, 20000.0f);
+	glViewport(0, 0, windowWidth, windowHeight);
 }
 
 int App::run(void)
@@ -218,12 +229,10 @@ int App::run(void)
 
 	try
 	{
-		// app code
-		//...
+		glEnable(GL_DEPTH_TEST);
 
 		// Activate shader program. There is only one program, so activation can be out of the loop.
 		// In more realistic scenarios, you will activate different shaders for different 3D objects.
-		glUseProgram(shader_prog_ID);
 
 		// Get uniform location in GPU program. This will not change, so it can be moved out of the game loop.
 		GLint uniform_color_location = glGetUniformLocation(shader_prog_ID, "uniform_Color");
@@ -231,6 +240,9 @@ int App::run(void)
 		{
 			std::cerr << "Uniform location is not found in active shader program. Did you forget to activate it?\n";
 		}
+
+		// Hardcoded view matrix (camera at origin looking down -Z)
+		glm::mat4 viewMatrix = glm::identity<glm::mat4>();
 
 		while (!glfwWindowShouldClose(window))
 		{
@@ -253,15 +265,23 @@ int App::run(void)
 			// Clear OpenGL canvas, both color buffer and Z-buffer
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			glUseProgram(shader_prog_ID);
+
 			// set uniform parameter for shader
 			// (try to change the color in key callback)
 			glUniform4f(uniform_color_location, r, g, b, a);
 
-			// draw all VAO data
-			// glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-			// Draw using indices
-			model.update(0.016f); // Optional: update position (currently does nothing unless modified)
-			model.draw();		  // Renders all meshes in the model
+			// Set view matrix: camera at (0, 0, 5) looking at (0, 0, 0)
+            glm::mat4 viewMatrix = glm::lookAt(
+                glm::vec3(0.0f, 0.0f, 5.0f), // Camera position
+                glm::vec3(0.0f, 0.0f, 0.0f), // Look at origin
+                glm::vec3(0.0f, 1.0f, 0.0f)  // Up vector
+            );
+            glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+            glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+
+            model.update(0.016f);
+            model.draw();
 
 			// Poll for and process events
 			glfwPollEvents();
@@ -279,6 +299,15 @@ int App::run(void)
 	return EXIT_SUCCESS;
 }
 
+void App::framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+	windowWidth = width;
+	windowHeight = height > 0 ? height : 1; // Avoid division by 0
+	float aspectRatio = static_cast<float>(windowWidth) / windowHeight;
+	projectionMatrix = glm::perspective(glm::radians(fov), aspectRatio, 0.1f, 20000.0f);
+	glViewport(0, 0, windowWidth, windowHeight);
+}
+
 void App::error_callback(int error, const char *description)
 {
 	std::cerr << "GLFW Error " << error << ": " << description << '\n';
@@ -286,7 +315,12 @@ void App::error_callback(int error, const char *description)
 
 void App::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
-	std::cout << "Scroll: " << xoffset << ", " << yoffset << '\n';
+	// Adjust FOV with scroll (e.g., zoom in/out)
+	fov -= static_cast<float>(yoffset) * 5.0f; // 5 degrees per scroll step
+	fov = glm::clamp(fov, 10.0f, 120.0f);	   // Limit FOV range
+	float aspectRatio = static_cast<float>(windowWidth) / windowHeight;
+	projectionMatrix = glm::perspective(glm::radians(fov), aspectRatio, 0.1f, 20000.0f);
+	std::cout << "FOV: " << fov << "\n";
 }
 
 void App::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -377,8 +411,8 @@ App::~App()
 
 	// cleanup GL data
 	glDeleteProgram(shader_prog_ID);
-	glDeleteBuffers(1, &VBO_ID);
-	glDeleteVertexArrays(1, &VAO_ID);
+	// glDeleteBuffers(1, &VBO_ID);
+	// glDeleteVertexArrays(1, &VAO_ID);
 
 	exit(EXIT_SUCCESS);
 	cv::destroyAllWindows();
