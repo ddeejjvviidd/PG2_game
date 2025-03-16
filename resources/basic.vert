@@ -17,6 +17,7 @@
 
 #version 460 core
 in vec3 attribute_Position;
+uniform mat4 model; // Add this
 void main() {
-    gl_Position = vec4(attribute_Position, 1.0);
+    gl_Position = model * vec4(attribute_Position, 1.0); // Apply model transformation
 }

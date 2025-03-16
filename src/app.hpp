@@ -3,7 +3,7 @@
 #include <GL/glew.h>    // Add this to ensure GLEW comes first
 #include "assets.hpp"   // Already includes glew.h, but we make it explicit
 #include <GLFW/glfw3.h> // GLFW comes after GLEW
-#include "Mesh.hpp"
+#include "Model.hpp"
 #include <string>
 #include <vector>
 
@@ -32,7 +32,7 @@ public:
     //         {{0.5f, -0.5f, 0.0f}},
     //         {{-0.5f, -0.5f, 0.0f}}};
     Mesh mesh;
-    
+
     ~App();
 
 private:
@@ -41,4 +41,5 @@ private:
     std::string appname; // Stores "first_test"
     int resX;            // Stores default_resolution.x (1024)
     int resY;            // Stores default_resolution.y (768)
+    Model model;         // Manages the object
 };

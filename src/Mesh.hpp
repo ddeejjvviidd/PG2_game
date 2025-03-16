@@ -53,8 +53,7 @@ public:
                                                                                                                                                                                                                      orientation(orientation),
                                                                                                                                                                                                                      texture_id(texture_id)
     {
-        // TODO: create and initialize VAO, VBO, EBO and parameters
-        // Create VAO + data description (just envelope, or container...)
+        // Create VAO
         glCreateVertexArrays(1, &VAO);
         if (VAO == 0)
         {
@@ -70,19 +69,36 @@ public:
             throw std::runtime_error("Invalid shader program");
         }
 
-        // Get attribute location for position
+        // Position attribute
         GLint position_attrib_location = glGetAttribLocation(shader_prog_ID, "attribute_Position");
         if (position_attrib_location == -1)
         {
             std::cerr << "Failed to find attribute 'attribute_Position' in shader\n";
             throw std::runtime_error("Invalid attribute location");
         }
-
         glEnableVertexArrayAttrib(VAO, position_attrib_location);
         glVertexArrayAttribFormat(VAO, position_attrib_location, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, Position));
-        glVertexArrayAttribBinding(VAO, position_attrib_location, 0); // (GLuint vaobj, GLuint attribindex, GLuint bindingindex)
+        glVertexArrayAttribBinding(VAO, position_attrib_location, 0);
 
-        // Create and fill data
+        // Normal attribute
+        GLint normal_attrib_location = glGetAttribLocation(shader_prog_ID, "attribute_Normal");
+        if (normal_attrib_location != -1) // Only set up if the shader uses it
+        {
+            glEnableVertexArrayAttrib(VAO, normal_attrib_location);
+            glVertexArrayAttribFormat(VAO, normal_attrib_location, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, Normal));
+            glVertexArrayAttribBinding(VAO, normal_attrib_location, 0);
+        }
+
+        // Texture coordinate attribute
+        GLint texcoord_attrib_location = glGetAttribLocation(shader_prog_ID, "attribute_TexCoords");
+        if (texcoord_attrib_location != -1) // Only set up if the shader uses it
+        {
+            glEnableVertexArrayAttrib(VAO, texcoord_attrib_location);
+            glVertexArrayAttribFormat(VAO, texcoord_attrib_location, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, TexCoords));
+            glVertexArrayAttribBinding(VAO, texcoord_attrib_location, 0);
+        }
+
+        // Create and fill VBO
         glCreateBuffers(1, &VBO);
         if (VBO == 0)
         {
@@ -92,7 +108,7 @@ public:
         }
         glNamedBufferData(VBO, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-        // Create and fill EBO with index data
+        // Create and fill EBO
         glCreateBuffers(1, &EBO);
         if (EBO == 0)
         {
@@ -103,15 +119,15 @@ public:
         }
         glNamedBufferData(EBO, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-        // Connect together
-        glVertexArrayVertexBuffer(VAO, 0, VBO, 0, sizeof(Vertex)); // (GLuint vaobj, GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride)
-        glVertexArrayElementBuffer(VAO, EBO);                      // Bind EBO to VAO
+        // Connect VBO and EBO to VAO
+        glVertexArrayVertexBuffer(VAO, 0, VBO, 0, sizeof(Vertex));
+        glVertexArrayElementBuffer(VAO, EBO);
     };
 
     GLuint getVAO() const { return VAO; }
     GLsizei getIndexCount() const { return static_cast<GLsizei>(indices.size()); } // Getter for index count
 
-    void draw(glm::vec3 const &offset, glm::vec3 const &rotation)
+    void draw(glm::vec3 const &offset, glm::vec3 const &rotation) const
     {
         if (VAO == 0)
         {
@@ -127,18 +143,71 @@ public:
         //    ...
         //}
 
-        // TODO: draw mesh: bind vertex array object, draw all elements with selected primitive type
+        // Compute the model matrix based on origin, offset, orientation, and rotation
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, origin + offset); // Apply translation
+
+        // Apply rotations (assuming rotation is in degrees for simplicity)
+        model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f)); // X-axis
+        model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)); // Y-axis
+        model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)); // Z-axis
+
+        // Assuming orientation is also in degrees (apply model's own orientation)
+        model = glm::rotate(model, glm::radians(orientation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::rotate(model, glm::radians(orientation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::rotate(model, glm::radians(orientation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+        // Set the model matrix uniform in the shader (assuming the shader has a "model" uniform)
+        GLint modelLoc = glGetUniformLocation(shader.getID(), "model");
+        if (modelLoc != -1) // Check if the uniform exists
+        {
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        }
+        else
+        {
+            std::cerr << "Warning: 'model' uniform not found in shader\n";
+        }
+
+        // Bind the VAO
+        glBindVertexArray(VAO);
+
+        // Draw the mesh using indexed drawing
+        glDrawElements(primitive_type, getIndexCount(), GL_UNSIGNED_INT, 0);
+
+        // Unbind the VAO (optional, but good practice)
+        glBindVertexArray(0);
     }
 
     void clear(void)
     {
+        // Reset member variables to safe defaults
         texture_id = 0;
         primitive_type = GL_POINT;
-        // TODO: clear rest of the member variables to safe default
+        origin = glm::vec3(0.0f);
+        orientation = glm::vec3(0.0f);
+        ambient_material = glm::vec4(1.0f);
+        diffuse_material = glm::vec4(1.0f);
+        specular_material = glm::vec4(1.0f);
+        reflectivity = 1.0f;
+        vertices.clear(); // Clear vertex and index data
+        indices.clear();
 
-        // TODO: delete all allocations
-        // glDeleteBuffers...
-        // glDeleteVertexArrays...
+        // Delete OpenGL resources if they exist
+        if (EBO != 0)
+        {
+            glDeleteBuffers(1, &EBO);
+            EBO = 0;
+        }
+        if (VBO != 0)
+        {
+            glDeleteBuffers(1, &VBO);
+            VBO = 0;
+        }
+        if (VAO != 0)
+        {
+            glDeleteVertexArrays(1, &VAO);
+            VAO = 0;
+        }
     };
 
 private:

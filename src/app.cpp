@@ -20,7 +20,7 @@
 // WGLEW = Windows GL Extension Wrangler (change for different platform)
 // platform specific functions (in this case Windows)
 #ifdef _WIN32
-	#include <GL/wglew.h>
+#include <GL/wglew.h>
 #endif
 
 // GLFW toolkit
@@ -37,8 +37,8 @@
 #include "gl_err_callback.h"
 #include "assets.hpp"
 #include "ShaderProgram.hpp"
-#include "Mesh.hpp"
 #include "OBJloader.hpp"
+#include "Model.hpp"
 
 using json = nlohmann::json; // Alias for convenience
 
@@ -111,10 +111,11 @@ bool App::init()
 		// open window (GL canvas) with no special properties
 		// https://www.glfw.org/docs/latest/quick.html#quick_create_window
 		window = glfwCreateWindow(resX, resY, appname.c_str(), NULL, NULL);
-		if (!window) {
-            std::cerr << "Failed to create GLFW window\n";
-            throw std::runtime_error("GLFW window creation failed");
-        }
+		if (!window)
+		{
+			std::cerr << "Failed to create GLFW window\n";
+			throw std::runtime_error("GLFW window creation failed");
+		}
 		glfwMakeContextCurrent(window);
 		glfwSetWindowUserPointer(window, this);
 		glfwSetScrollCallback(window, [](GLFWwindow *w, double x, double y)
@@ -129,9 +130,9 @@ bool App::init()
 		// http://glew.sourceforge.net/basic.html
 		std::cout << "Initializing GLEW...\n";
 		glewInit();
-		#ifdef _WIN32
-			wglewInit();
-		#endif
+#ifdef _WIN32
+		wglewInit();
+#endif
 		// if (not_success)
 		//  throw std::runtime_error("something went bad");
 
@@ -200,44 +201,11 @@ void App::init_assets(void)
 {
 
 	// shader: load, compile, link, initialize params
-    // (may be moved to global variables - if all models use same shader)
-    ShaderProgram my_shader = ShaderProgram("resources/basic.vert", "resources/basic.frag");
+	// (may be moved to global variables - if all models use same shader)
+	ShaderProgram my_shader = ShaderProgram("resources/basic.vert", "resources/basic.frag");
 	shader_prog_ID = my_shader.getID();
-
-	// Load triangle.obj
-	std::vector<glm::vec3> out_vertices;
-	std::vector<glm::vec2> out_uvs;
-	std::vector<glm::vec3> out_normals;
-
-	const char* obj_path = "resources/objects/triangle.obj";
-	if (!loadOBJ(obj_path, out_vertices, out_uvs, out_normals)) {
-		std::cerr << "Failed to load " << obj_path << std::endl;
-		throw std::runtime_error("OBJ loading failed");
-	}
-
-	// Convert loaded data to Vertex format
-	std::vector<Vertex> vertices;
-	if (out_vertices.size() != out_uvs.size() || out_vertices.size() != out_normals.size()) {
-		std::cerr << "Mismatch in vertex, UV, or normal counts from OBJ file\n";
-		throw std::runtime_error("Invalid OBJ data");
-	}
-
-	for (size_t i = 0; i < out_vertices.size(); ++i) {
-		Vertex v;
-		v.Position = out_vertices[i];
-		v.Normal = out_normals[i];
-		v.TexCoords = out_uvs[i];
-		vertices.push_back(v);
-	}
-
-	// Generate indices (simple sequential since OBJloader unrolls to direct vertices)
-	std::vector<GLuint> indices;
-	for (GLuint i = 0; i < static_cast<GLuint>(vertices.size()); ++i) {
-		indices.push_back(i);
-	}
-    // Create a Mesh instance
-    mesh = Mesh(GL_TRIANGLES, my_shader, vertices, indices, glm::vec3(0.0f), glm::vec3(0.0f));
-    VAO_ID = mesh.getVAO(); // For now, store VAO_ID to use in run (you'll need to make VAO public or add a getter later)
+	// Load model
+	model = Model("resources/objects/triangle.obj", my_shader);
 }
 
 int App::run(void)
@@ -288,15 +256,12 @@ int App::run(void)
 			// set uniform parameter for shader
 			// (try to change the color in key callback)
 			glUniform4f(uniform_color_location, r, g, b, a);
-			
-
-			// bind 3d object data
-			glBindVertexArray(VAO_ID);
 
 			// draw all VAO data
 			// glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 			// Draw using indices
-            glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh.getIndexCount()), GL_UNSIGNED_INT, 0);
+			model.update(0.016f); // Optional: update position (currently does nothing unless modified)
+			model.draw();		  // Renders all meshes in the model
 
 			// Poll for and process events
 			glfwPollEvents();
