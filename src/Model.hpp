@@ -70,13 +70,18 @@ public:
     }
 
     // update position etc. based on running time
-    void update(const float delta_t)
+    void update(const float totalTime)
     {
-        orientation.y += 0.1f; // 45 degrees per second
-        if (orientation.y >= 360.0f)
-        {
-            orientation.y -= 360.0f;
-        }
+        // origin += glm::vec3(3,0,0) * delta_t; // s = s0 + v*dt
+        // Rotate around the Y-axis (in degrees)
+        //orientation.y += 45.0f * delta_t; // 45 degrees per second
+        // Keep orientation.y in [0, 360) to avoid overflow (optional)
+        //if (orientation.y >= 360.0f)
+        //{
+        //    orientation.y -= 360.0f;
+        //}
+
+        orientation.y = fmod(totalTime * 45.0f, 360.0f);
     }
 
     void draw(glm::vec3 const &offset = glm::vec3(0.0), glm::vec3 const &rotation = glm::vec3(0.0f))

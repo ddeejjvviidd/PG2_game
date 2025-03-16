@@ -255,7 +255,9 @@ int App::run(void)
 		while (!glfwWindowShouldClose(window))
 		{
 			double currentTime = glfwGetTime();
-			float deltaTime = static_cast<float>(currentTime - lastTime);
+			float totalTime = static_cast<float>(currentTime - startTime);
+			
+
 			frameCount++;
 
 			if (currentTime - lastTime >= 1.0)
@@ -282,8 +284,8 @@ int App::run(void)
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-			model.update(deltaTime); // Use deltaTime for consistent rotation speed
-			model.draw();
+            model.update(totalTime);
+            model.draw();
 
 			glfwPollEvents();
 			glfwSwapBuffers(window);
