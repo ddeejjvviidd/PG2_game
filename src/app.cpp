@@ -231,7 +231,6 @@ int App::run(void)
 
 	double lastTime = glfwGetTime(); // Time of last FPS update
 	int frameCount = 0;				 // Number of frames since last update
-	const double targetFrameTime = 1.0 / 60.0; // Target 16.67ms per frame for 60 FPS
 
 	try
 	{
@@ -254,22 +253,26 @@ int App::run(void)
 
 		while (!glfwWindowShouldClose(window))
 		{
+			// Measure time
 			double currentTime = glfwGetTime();
 			float totalTime = static_cast<float>(currentTime - startTime);
-			
+			float deltaTime = static_cast<float>(currentTime - lastTime); // Add deltaTime for camera
 
 			frameCount++;
 
+			// Update FPS every second
 			if (currentTime - lastTime >= 1.0)
 			{
 				double fps = frameCount / (currentTime - lastTime);
 				std::string title = "FPS: " + std::to_string(static_cast<int>(fps + 0.5)) +
 									" | VSync: " + (vsyncEnabled ? "On" : "Off");
 				glfwSetWindowTitle(window, title.c_str());
+
 				frameCount = 0;
 				lastTime = currentTime;
 			}
 
+			// Clear OpenGL canvas, both color buffer and Z-buffer
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			// Update camera position based on input
@@ -277,17 +280,22 @@ int App::run(void)
 			camera.Position += movement;
 
 			glUseProgram(shader_prog_ID);
+
+			// set uniform parameter for shader
+			// (try to change the color in key callback)
 			glUniform4f(uniform_color_location, r, g, b, a);
 
-			// Set view and projection matrices
+			// Set view and projection matrices using camera
 			glm::mat4 viewMatrix = camera.GetViewMatrix();
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-            model.update(totalTime);
-            model.draw();
+			model.update(totalTime);
+			model.draw();
 
+			// Poll for and process events
 			glfwPollEvents();
+			// Swap front and back buffers
 			glfwSwapBuffers(window);
 		}
 	}
