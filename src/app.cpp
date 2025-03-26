@@ -210,19 +210,62 @@ void App::init_assets(void)
 	ShaderProgram my_shader = ShaderProgram("resources/basic.vert", "resources/basic.frag");
 	shader_prog_ID = my_shader.getID();
 
-	// Create four triangles at different positions
-	models.emplace_back("resources/objects/triangle.obj", my_shader); // Front (0, 0, 0)
-	models.emplace_back("resources/objects/triangle.obj", my_shader); // Back (0, 0, 2)
-	models.emplace_back("resources/objects/triangle.obj", my_shader); // Left (-2, 0, 0)
-	models.emplace_back("resources/objects/triangle.obj", my_shader); // Right (2, 0, 0)
-	models.emplace_back("resources/objects/cube.obj", my_shader);	  // Above (0, 2, 0)
+	// Define the 5x5 labyrinth layout
+	const int gridSize = 10;
+	int labyrinth[gridSize][gridSize] = {
+		{1, 0, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 0, 0, 0, 1, 0, 0, 0, 0, 1},
+		{1, 0, 1, 0, 1, 0, 1, 1, 0, 1},
+		{1, 0, 1, 0, 0, 0, 0, 1, 0, 1},
+		{1, 0, 1, 1, 1, 1, 0, 1, 0, 1},
+		{1, 0, 0, 0, 0, 1, 0, 0, 0, 1},
+		{1, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+		{1, 0, 0, 1, 0, 0, 0, 1, 0, 1},
+		{1, 0, 0, 0, 0, 1, 0, 0, 0, 1},
+		{1, 1, 1, 1, 1, 1, 1, 0, 1, 1}};
 
-	// Set positions
-	models[0].origin = glm::vec3(0.0f, 0.0f, 0.0f);	 // Front
-	models[1].origin = glm::vec3(0.0f, 0.0f, 2.0f);	 // Back
-	models[2].origin = glm::vec3(-1.0f, 0.0f, 1.0f); // Left
-	models[3].origin = glm::vec3(1.0f, 0.0f, 1.0f);	 // Right
-	models[4].origin = glm::vec3(0.0f, 2.0f, 0.0f);	 // Cube above
+	// Place cubes for each '1' in the labyrinth
+	float cubeSize = 1.0f; // Size of each cube (adjust as needed)
+	for (int z = 0; z < gridSize; ++z)
+	{
+		for (int x = 0; x < gridSize; ++x)
+		{
+			if (labyrinth[z][x] == 1)
+			{
+				// Create a cube model at position (x, 0, z)
+				models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/box_rgb888.png");
+				models.back().origin = glm::vec3(
+					x * cubeSize - 5.0f, // Center the labyrinth around (0, 0, 0)
+					0.0f,				 // Y = 0 (ground level)
+					z * cubeSize - 5.0f	 // Center the labyrinth
+				);
+			}
+		}
+	}
+
+	// Flat floor for labyrinth (20x20 units to match 10x10 grid of 2-unit cubes)
+	models.emplace_back(30.0f, 30.0f, my_shader, "resources/textures/StoneFloorTexture.png");
+	models.back().origin = glm::vec3(0.0f, -0.55f, 0.0f); // Slightly below cubes
+
+	// Heightmap terrain (separate, offset to the right)
+	models.emplace_back("resources/textures/heights.png", my_shader, "resources/textures/StoneFloorTexture.png", 50, 50, 5.0f);
+	models.back().origin = glm::vec3(0.0f, -0.55f, -20.0f); // Offset 30 units along
+
+	camera = Camera(glm::vec3(0.0f, 0.0f, -7.0f)); // A`djusted to see larger labyrinth
+
+	// // Create four triangles at different positions
+	// models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png"); // Front (0, 0, 0)
+	// models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png"); // Back (0, 0, 2)
+	// models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png"); // Left (-2, 0, 0)
+	// models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png"); // Right (2, 0, 0)
+	// models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/box_rgb888.png");	  // Above (0, 2, 0)
+
+	// // Set positions
+	// models[0].origin = glm::vec3(0.0f, 0.0f, 0.0f);	 // Front
+	// models[1].origin = glm::vec3(0.0f, 0.0f, 2.0f);	 // Back
+	// models[2].origin = glm::vec3(-1.0f, 0.0f, 1.0f); // Left
+	// models[3].origin = glm::vec3(1.0f, 0.0f, 1.0f);	 // Right
+	// models[4].origin = glm::vec3(0.0f, 2.0f, 0.0f);	 // Cube above
 
 	// Initialize projection matrix
 	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
@@ -292,7 +335,8 @@ int App::run(void)
 
 			// set uniform parameter for shader
 			// (try to change the color in key callback)
-			glUniform4f(uniform_color_location, r, g, b, a);
+			if (uniform_color_location != -1) // Optional if shaders use textures only
+				glUniform4f(uniform_color_location, r, g, b, a);
 
 			// Set view and projection matrices using camera
 			glm::mat4 viewMatrix = camera.GetViewMatrix();

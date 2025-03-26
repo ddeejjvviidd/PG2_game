@@ -8,6 +8,7 @@
 
 #include "assets.hpp"
 #include "ShaderProgram.hpp"
+#include <opencv2/opencv.hpp>
 
 class Mesh
 {
@@ -45,13 +46,14 @@ public:
     }
 
     // indirect (indexed) draw
-    Mesh(GLenum primitive_type, ShaderProgram shader, std::vector<Vertex> const &vertices, std::vector<GLuint> const &indices, glm::vec3 const &origin, glm::vec3 const &orientation, GLuint const texture_id = 0) : primitive_type(primitive_type),
-                                                                                                                                                                                                                     shader(shader),
-                                                                                                                                                                                                                     vertices(vertices),
-                                                                                                                                                                                                                     indices(indices),
-                                                                                                                                                                                                                     origin(origin),
-                                                                                                                                                                                                                     orientation(orientation),
-                                                                                                                                                                                                                     texture_id(texture_id)
+    Mesh(GLenum primitive_type, ShaderProgram shader, std::string texturePath, std::vector<Vertex> const &vertices, std::vector<GLuint> const &indices, glm::vec3 const &origin, glm::vec3 const &orientation, GLuint const texture_id = 0)
+        : primitive_type(primitive_type),
+          shader(shader),
+          texture_id(texture_id),
+          vertices(vertices),
+          indices(indices),
+          origin(origin),
+          orientation(orientation)
     {
         // Create VAO
         glCreateVertexArrays(1, &VAO);
@@ -122,61 +124,16 @@ public:
         // Connect VBO and EBO to VAO
         glVertexArrayVertexBuffer(VAO, 0, VBO, 0, sizeof(Vertex));
         glVertexArrayElementBuffer(VAO, EBO);
+
+        // Load texture if path is provided
+        if (!texturePath.empty())
+        {
+            loadTexture(texturePath);
+        }
     };
 
     GLuint getVAO() const { return VAO; }
     GLsizei getIndexCount() const { return static_cast<GLsizei>(indices.size()); } // Getter for index count
-
-    // void draw(glm::vec3 const &offset, glm::vec3 const &rotation) const
-    // {
-    //     if (VAO == 0)
-    //     {
-    //         std::cerr << "VAO not initialized!\n";
-    //         return;
-    //     }
-
-    //     shader.activate();
-
-    //     // for future use: set uniform variables: position, textures, etc...
-    //     // set texture id etc...
-    //     // if (texture_id > 0) {
-    //     //    ...
-    //     //}
-
-    //     // Compute the model matrix based on origin, offset, orientation, and rotation
-    //     glm::mat4 model = glm::mat4(1.0f);
-    //     model = glm::translate(model, origin + offset); // Apply translation
-
-    //     // Apply rotations (assuming rotation is in degrees for simplicity)
-    //     model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f)); // X-axis
-    //     model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)); // Y-axis
-    //     model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)); // Z-axis
-
-    //     // Assuming orientation is also in degrees (apply model's own orientation)
-    //     model = glm::rotate(model, glm::radians(orientation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    //     model = glm::rotate(model, glm::radians(orientation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-    //     model = glm::rotate(model, glm::radians(orientation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-    //     // Set the model matrix uniform in the shader (assuming the shader has a "model" uniform)
-    //     GLint modelLoc = glGetUniformLocation(shader.getID(), "model");
-    //     if (modelLoc != -1) // Check if the uniform exists
-    //     {
-    //         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    //     }
-    //     else
-    //     {
-    //         std::cerr << "Warning: 'model' uniform not found in shader\n";
-    //     }
-
-    //     // Bind the VAO
-    //     glBindVertexArray(VAO);
-
-    //     // Draw the mesh using indexed drawing
-    //     glDrawElements(primitive_type, getIndexCount(), GL_UNSIGNED_INT, 0);
-
-    //     // Unbind the VAO (optional, but good practice)
-    //     glBindVertexArray(0);
-    // }
 
     void draw(glm::vec3 const &offset, glm::vec3 const &rotation) const
     {
@@ -196,7 +153,7 @@ public:
         modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.x), glm::vec3(1.0f, 0.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.y), glm::vec3(0.0f, 1.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-        modelMatrix = glm::scale(modelMatrix, glm::vec3(0.1f)); // Adjust scale if needed
+        modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f)); // Adjust scale if needed
 
         GLint modelLoc = glGetUniformLocation(shader.getID(), "uM_m"); // Changed to uM_m
         if (modelLoc != -1)
@@ -206,6 +163,14 @@ public:
         else
         {
             std::cerr << "Warning: 'uM_m' uniform not found in shader\n";
+        }
+
+        // Bind texture if available
+        if (texture_id != 0)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture_id);
+            glUniform1i(glGetUniformLocation(shader.getID(), "textureSampler"), 0);
         }
 
         glBindVertexArray(VAO);
@@ -252,4 +217,38 @@ private:
     // Mesh data stored for reference
     std::vector<Vertex> vertices; // Added member
     std::vector<GLuint> indices;  // Added member
+
+    void loadTexture(const std::string &texturePath)
+    {
+        // Load image with OpenCV
+        cv::Mat image = cv::imread(texturePath, cv::IMREAD_COLOR);
+        if (image.empty())
+        {
+            std::cerr << "Failed to load texture: " << texturePath << std::endl;
+            return;
+        }
+
+        // OpenCV loads in BGR, convert to RGB
+        cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+
+        // Flip vertically (OpenGL expects bottom-left origin, OpenCV is top-left)
+        cv::flip(image, image, 0);
+
+        // Generate and bind texture
+        glGenTextures(1, &texture_id); // Use texture_id, not textureID
+        glBindTexture(GL_TEXTURE_2D, texture_id);
+
+        // Set texture parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // Upload texture data
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.cols, image.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, image.data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        // Unbind texture
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 };
