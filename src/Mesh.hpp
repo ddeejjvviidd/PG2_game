@@ -228,8 +228,15 @@ private:
             return;
         }
 
+        // Determine texture format
         // OpenCV loads in BGR, convert to RGB
-        cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+        GLenum format = GL_RGB;
+        if (image.channels() == 4) {
+            format = GL_RGBA;
+            cv::cvtColor(image, image, cv::COLOR_BGRA2RGBA);
+        } else {
+            cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+        }
 
         // Flip vertically (OpenGL expects bottom-left origin, OpenCV is top-left)
         cv::flip(image, image, 0);

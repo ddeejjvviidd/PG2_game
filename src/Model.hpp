@@ -19,6 +19,8 @@ public:
     glm::vec3 orientation{};
     ShaderProgram shader;
 
+    bool transparent = false; // Flag to indicate if the model is transparent
+
     Model() = default; // Add default constructor
 
     // OBJ constructor (for cubes)

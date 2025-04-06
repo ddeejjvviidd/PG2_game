@@ -267,6 +267,27 @@ void App::init_assets(void)
 	// models[3].origin = glm::vec3(1.0f, 0.0f, 1.0f);	 // Right
 	// models[4].origin = glm::vec3(0.0f, 2.0f, 0.0f);	 // Cube above
 
+	// Transparent test
+	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png");
+	models.back().origin = glm::vec3(0.0f, 0.0f, 0.0f);
+	models.back().transparent = true;
+
+	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png");
+	models.back().origin = glm::vec3(0.0f, 0.0f, 2.0f);
+	models.back().transparent = true;
+
+	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png");
+	models.back().origin = glm::vec3(-1.0f, 0.0f, 1.0f);
+	models.back().transparent = true;
+
+	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png");
+	models.back().origin = glm::vec3(1.0f, 0.0f, 1.0f);
+	models.back().transparent = true;
+
+	// Keep the cube non-transparent
+	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/box_rgb888.png");
+	models.back().origin = glm::vec3(0.0f, 2.0f, 0.0f);
+
 	// Initialize projection matrix
 	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 	if (windowHeight <= 0)
@@ -343,12 +364,37 @@ int App::run(void)
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-			// Update and draw all four triangles
+			// Update time for all models
 			for (auto &model : models)
 			{
 				model.update(totalTime);
-				model.draw();
 			}
+
+			std::vector<Model*> transparentModels;
+			for (auto &model : models){
+				if(!model.transparent){
+					model.draw();
+				}
+				else{
+					transparentModels.push_back(&model);
+				}
+			}
+
+			std::sort(transparentModels.begin(), transparentModels.end(), [&](Model* a, Model* b) {
+				glm::vec3 posA = a->origin;
+				glm::vec3 posB = b->origin;
+				return glm::distance(camera.Position, posA) > glm::distance(camera.Position, posB);
+			});
+
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glDepthMask(GL_FALSE);
+			for (auto &model : transparentModels)
+			{
+				model->draw();
+			}
+			glDepthMask(GL_TRUE);
+			glDisable(GL_BLEND);
 
 			// Poll for and process events
 			glfwPollEvents();

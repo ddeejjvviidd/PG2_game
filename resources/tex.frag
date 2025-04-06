@@ -14,5 +14,9 @@ out vec4 FragColor;
 
 void main() {
     // modulate texture with material color, including transparency
-    FragColor = u_diffuse_color * texture(tex0, fs_in.texcoord);
+    vec4 texColor = texture(tex0, fs_in.texcoord);
+    FragColor = u_diffuse_color * texColor;
+
+    if (FragColor.a < 0.1)
+        discard;
 }

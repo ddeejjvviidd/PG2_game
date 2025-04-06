@@ -3,5 +3,9 @@
   "default_resolution": {
     "x": 1024,
     "y": 768
+  },
+  "antialiasing": {
+    "enabled": true,
+    "samples": 4
   }
 }
