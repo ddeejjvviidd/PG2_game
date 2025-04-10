@@ -175,7 +175,7 @@ public:
 
         glBindVertexArray(VAO);
         glDrawElements(primitive_type, getIndexCount(), GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        //glBindVertexArray(0);
     }
 
     void clear(void)
@@ -221,7 +221,7 @@ private:
     void loadTexture(const std::string &texturePath)
     {
         // Load image with OpenCV
-        cv::Mat image = cv::imread(texturePath, cv::IMREAD_COLOR);
+        cv::Mat image = cv::imread(texturePath, cv::IMREAD_UNCHANGED);
         if (image.empty())
         {
             std::cerr << "Failed to load texture: " << texturePath << std::endl;
@@ -230,13 +230,7 @@ private:
 
         // Determine texture format
         // OpenCV loads in BGR, convert to RGB
-        GLenum format = GL_RGB;
-        if (image.channels() == 4) {
-            format = GL_RGBA;
-            cv::cvtColor(image, image, cv::COLOR_BGRA2RGBA);
-        } else {
-            cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
-        }
+        
 
         // Flip vertically (OpenGL expects bottom-left origin, OpenCV is top-left)
         cv::flip(image, image, 0);
@@ -252,7 +246,15 @@ private:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // Upload texture data
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.cols, image.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, image.data);
+        if (image.channels() == 4) {
+            //cv::cvtColor(image, image, cv::COLOR_BGRA2RGBA);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image.cols, image.rows, 0, GL_BGRA, GL_UNSIGNED_BYTE, image.data);
+            std::cout << "Loaded texture with alpha channel" << std::endl;
+        } else {
+            //cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, image.cols, image.rows, 0, GL_BGR, GL_UNSIGNED_BYTE, image.data);
+        }
+
         glGenerateMipmap(GL_TEXTURE_2D);
 
         // Unbind texture

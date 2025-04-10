@@ -208,6 +208,7 @@ void App::init_assets(void)
 	// shader: load, compile, link, initialize params
 	// (may be moved to global variables - if all models use same shader)
 	ShaderProgram my_shader = ShaderProgram("resources/basic.vert", "resources/basic.frag");
+	//ShaderProgram my_transparent_shader = ShaderProgram("resources/tex.vert", "resources/tex.frag");
 	shader_prog_ID = my_shader.getID();
 
 	// Define the 5x5 labyrinth layout
@@ -285,8 +286,9 @@ void App::init_assets(void)
 	models.back().transparent = true;
 
 	// Keep the cube non-transparent
-	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/box_rgb888.png");
+	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/grass.png");
 	models.back().origin = glm::vec3(0.0f, 2.0f, 0.0f);
+	models.back().transparent = true;
 
 	// Initialize projection matrix
 	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
@@ -323,6 +325,8 @@ int App::run(void)
 		{
 			std::cerr << "Uniform location is not found in active shader program. Did you forget to activate it?\n";
 		}
+
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		while (!glfwWindowShouldClose(window))
 		{
@@ -387,11 +391,12 @@ int App::run(void)
 			});
 
 			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glDepthMask(GL_FALSE);
 			for (auto &model : transparentModels)
 			{
 				model->draw();
+				//std::cout << "Drawing transparent model\n";
 			}
 			glDepthMask(GL_TRUE);
 			glDisable(GL_BLEND);

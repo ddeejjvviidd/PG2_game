@@ -15,7 +15,9 @@ find_package(nlohmann_json 3.2.0 REQUIRED)
 if(WIN32)  # WIN32 is true on Windows
     set(OpenCV_DIR "C:/opencv/build")  # Your Windows path
 endif()
+
 find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 # Add executable
 add_executable(pg2_project src/main.cpp src/app.cpp src/gl_err_callback.cpp src/ShaderProgram.cpp src/OBJloader.cpp)
