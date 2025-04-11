@@ -234,7 +234,7 @@ void App::init_assets(void)
 			if (labyrinth[z][x] == 1)
 			{
 				// Create a cube model at position (x, 0, z)
-				models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/box_rgb888.png");
+				models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
 				models.back().origin = glm::vec3(
 					x * cubeSize - 5.0f, // Center the labyrinth around (0, 0, 0)
 					0.0f,				 // Y = 0 (ground level)
@@ -269,24 +269,24 @@ void App::init_assets(void)
 	// models[4].origin = glm::vec3(0.0f, 2.0f, 0.0f);	 // Cube above
 
 	// Transparent test
-	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png");
+	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
 	models.back().origin = glm::vec3(0.0f, 0.0f, 0.0f);
 	models.back().transparent = true;
 
-	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png");
+	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
 	models.back().origin = glm::vec3(0.0f, 0.0f, 2.0f);
 	models.back().transparent = true;
 
-	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png");
+	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
 	models.back().origin = glm::vec3(-1.0f, 0.0f, 1.0f);
 	models.back().transparent = true;
 
-	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png");
+	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
 	models.back().origin = glm::vec3(1.0f, 0.0f, 1.0f);
 	models.back().transparent = true;
 
 	// Keep the cube non-transparent
-	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/grass.png");
+	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
 	models.back().origin = glm::vec3(0.0f, 2.0f, 0.0f);
 	models.back().transparent = true;
 
