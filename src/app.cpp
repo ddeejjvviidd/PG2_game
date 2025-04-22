@@ -89,6 +89,22 @@ bool App::init()
 						resY = settings["default_resolution"]["y"].get<int>();
 					}
 				}
+
+				// Set antialiasing
+				if (settings.contains("antialiasing") && settings["antialiasing"].is_object())
+				{
+					if (settings["antialiasing"].contains("enabled") && settings["antialiasing"]["enabled"].is_boolean())
+					{
+						antiAliasingEnabled = settings["antialiasing"]["enabled"].get<bool>();
+					}
+					if (settings["antialiasing"].contains("samples") && settings["antialiasing"]["samples"].is_number_integer())
+					{
+						antiAliasingSamples = settings["antialiasing"]["samples"].get<int>();
+						glfwWindowHint(GLFW_SAMPLES, antiAliasingSamples);
+					}
+					std::cout << "Antialiasing enabled: " << (antiAliasingEnabled ? "true" : "false") << "\n";
+					std::cout << "Antialiasing samples: " << antiAliasingSamples << "\n";
+				}
 			}
 			catch (const json::exception &e)
 			{

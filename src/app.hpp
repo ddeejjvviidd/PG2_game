@@ -64,6 +64,8 @@ private:
     std::vector<Model> models;
     float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
     bool vsyncEnabled = true;
+    bool antiAliasingEnabled = false; // default value
+    int antiAliasingSamples = 2; // default value
 
     double startTime = glfwGetTime();
 
