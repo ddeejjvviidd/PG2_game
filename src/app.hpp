@@ -68,6 +68,9 @@ private:
     int antiAliasingSamples = 2; // default value
 
     double startTime = glfwGetTime();
+    double lastFrameTime = startTime;
+    double lastFpsUpdate = startTime;
+    int frameCount = 0;
 
     // Transformation-related members
     glm::mat4 projectionMatrix;

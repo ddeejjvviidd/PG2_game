@@ -352,21 +352,23 @@ int App::run(void)
 		{
 			// Measure time
 			double currentTime = glfwGetTime();
-			float totalTime = static_cast<float>(currentTime - startTime);
-			float deltaTime = static_cast<float>(currentTime - lastTime); // Add deltaTime for camera
+			//float totalTime = static_cast<float>(currentTime - startTime);
+			float deltaTime = static_cast<float>(currentTime - lastFrameTime); // Add deltaTime for camera
+			lastFrameTime = currentTime;
 
 			frameCount++;
+			float totalTime = static_cast<float>(currentTime - startTime);
 
 			// Update FPS every second
-			if (currentTime - lastTime >= 1.0)
+			if (currentTime - lastFpsUpdate >= 1.0)
 			{
-				double fps = frameCount / (currentTime - lastTime);
+				double fps = frameCount / (currentTime - lastFpsUpdate);
 				std::string title = "FPS: " + std::to_string(static_cast<int>(fps + 0.5)) +
 									" | VSync: " + (vsyncEnabled ? "On" : "Off");
 				glfwSetWindowTitle(window, title.c_str());
 
 				frameCount = 0;
-				lastTime = currentTime;
+				lastFpsUpdate = currentTime;
 			}
 
 			// Clear OpenGL canvas, both color buffer and Z-buffer

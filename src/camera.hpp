@@ -18,8 +18,8 @@ public:
     GLfloat Roll = 0.0f; // Not used for now, but included for completeness
 
     // Camera options
-    GLfloat MovementSpeed = 0.01f;
-    GLfloat MouseSensitivity = 0.01f;
+    GLfloat MovementSpeed = 5.01f;
+    GLfloat MouseSensitivity = 0.08f;
 
     Camera(glm::vec3 position) : Position(position)
     {
@@ -35,25 +35,25 @@ public:
     glm::vec3 ProcessInput(GLFWwindow *window, GLfloat deltaTime)
     {
         glm::vec3 direction{0};
+        int inputCount = 0;
 
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            direction += Front; // Forward
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            direction -= Front; // Backward
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            direction -= Right; // Left
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            direction += Right; // Right
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-            direction += Up; // Up
-        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-            direction -= Up; // Down
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { direction += Front; inputCount++; }
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { direction -= Front; inputCount++; }
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { direction -= Right; inputCount++; }
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { direction += Right; inputCount++; }
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) { direction += Up; inputCount++; }
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) { direction -= Up; inputCount++; }
 
-        // Normalize direction only if non-zero to avoid division by zero
-        if (glm::length(direction) > 0.0f)
-        {
-            direction = glm::normalize(direction) * MovementSpeed * deltaTime;
+        if (inputCount > 0) {
+            // Only normalize if moving in multiple directions at once
+            float speed = MovementSpeed * deltaTime;
+            if (inputCount > 1) {
+                direction = glm::normalize(direction) * speed;
+            } else {
+                direction *= speed;
+            }
         }
+        
         return direction;
     }
 
