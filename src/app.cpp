@@ -261,14 +261,14 @@ void App::init_assets(void)
 	}
 
 	// Flat floor for labyrinth (20x20 units to match 10x10 grid of 2-unit cubes)
-	models.emplace_back(30.0f, 30.0f, my_shader, "resources/textures/StoneFloorTexture.png");
-	models.back().origin = glm::vec3(0.0f, -0.55f, 0.0f); // Slightly below cubes
+	floor.emplace_back(30.0f, 30.0f, my_shader, "resources/textures/StoneFloorTexture.png");
+	floor.back().origin = glm::vec3(0.0f, -0.55f, 0.0f); // Slightly below cubes
 
 	// Heightmap terrain (separate, offset to the right)
-	models.emplace_back("resources/textures/heights.png", my_shader, "resources/textures/StoneFloorTexture.png", 50, 50, 5.0f);
-	models.back().origin = glm::vec3(0.0f, -0.55f, -20.0f); // Offset 30 units along
+	floor.emplace_back("resources/textures/heights.png", my_shader, "resources/textures/StoneFloorTexture.png", 50, 50, 5.0f);
+	floor.back().origin = glm::vec3(0.0f, -0.55f, -20.0f); // Offset 30 units along
 
-	camera = Camera(glm::vec3(0.0f, 0.0f, -7.0f)); // A`djusted to see larger labyrinth
+	camera = Camera(glm::vec3(0.0f, 20.0f, -7.0f));
 
 	// // Create four triangles at different positions
 	// models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png"); // Front (0, 0, 0)
@@ -389,6 +389,12 @@ int App::run(void)
 			glm::mat4 viewMatrix = camera.GetViewMatrix();
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+
+			// Draw floor
+			for (auto &model : floor){
+				model.update(totalTime);
+				model.draw();
+			}
 
 			// Update time for all models
 			for (auto &model : models)

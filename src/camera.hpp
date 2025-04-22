@@ -9,9 +9,11 @@ class Camera
 public:
     // Camera Attributes
     glm::vec3 Position;
+    glm::vec3 Velocity;
     glm::vec3 Front;
     glm::vec3 Right;
     glm::vec3 Up; // Camera local UP vector
+    glm::vec3 WorldUp; // World UP vector
 
     GLfloat Yaw = -90.0f; // Start looking along -Z
     GLfloat Pitch = 0.0f;
@@ -20,41 +22,59 @@ public:
     // Camera options
     GLfloat MovementSpeed = 5.01f;
     GLfloat MouseSensitivity = 0.08f;
+    GLfloat JumpForce = 5.0f;
+    GLfloat Gravity = -9.81f;
 
-    Camera(glm::vec3 position) : Position(position)
+    float playerHeight = 1.8f; // Height of the player (for jumping)
+    float playerRadius = 0.3f;
+    bool isGrounded = false;
+
+    Camera(glm::vec3 position) : Position(position), WorldUp(glm::vec3(0.0f, 1.0f, 0.0f))
     {
-        this->Up = glm::vec3(0.0f, 1.0f, 0.0f); // World up
-        this->updateCameraVectors();
+        //this->Up = glm::vec3(0.0f, 1.0f, 0.0f); // World up
+        //this->updateCameraVectors();
+        Velocity = glm::vec3(0.0f);
+        updateCameraVectors();
     }
+
 
     glm::mat4 GetViewMatrix()
     {
         return glm::lookAt(this->Position, this->Position + this->Front, this->Up);
     }
 
+
     glm::vec3 ProcessInput(GLFWwindow *window, GLfloat deltaTime)
     {
-        glm::vec3 direction{0};
-        int inputCount = 0;
-
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { direction += Front; inputCount++; }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { direction -= Front; inputCount++; }
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { direction -= Right; inputCount++; }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { direction += Right; inputCount++; }
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) { direction += Up; inputCount++; }
-        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) { direction -= Up; inputCount++; }
-
-        if (inputCount > 0) {
-            // Only normalize if moving in multiple directions at once
-            float speed = MovementSpeed * deltaTime;
-            if (inputCount > 1) {
-                direction = glm::normalize(direction) * speed;
-            } else {
-                direction *= speed;
-            }
-        }
+        glm::vec3 inputDirection(0.0f);
         
-        return direction;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            inputDirection += Front;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            inputDirection -= Front;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            inputDirection -= Right;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            inputDirection += Right;
+            
+        // Jump only if grounded
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && isGrounded) {
+            Velocity.y = JumpForce;
+            isGrounded = false;
+        }
+
+        // Apply movement speed only if there's input
+        if (glm::length(inputDirection) > 0.0f) {
+            inputDirection = glm::normalize(inputDirection) * MovementSpeed;
+        }
+
+        // Apply gravity
+        Velocity.y += Gravity * deltaTime;
+        
+        // Update position based on velocity
+        glm::vec3 movement = (inputDirection + Velocity) * deltaTime;
+        
+        return movement;
     }
 
     void ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = GL_TRUE)

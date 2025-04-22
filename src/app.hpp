@@ -62,6 +62,7 @@ private:
     GLFWwindow *window;
     GLuint shader_prog_ID;
     std::vector<Model> models;
+    std::vector<Model> floor;
     float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
     bool vsyncEnabled = true;
     bool antiAliasingEnabled = false; // default value
