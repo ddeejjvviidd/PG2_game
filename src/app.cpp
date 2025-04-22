@@ -208,7 +208,7 @@ void App::init_assets(void)
 	// shader: load, compile, link, initialize params
 	// (may be moved to global variables - if all models use same shader)
 	ShaderProgram my_shader = ShaderProgram("resources/basic.vert", "resources/basic.frag");
-	//ShaderProgram my_transparent_shader = ShaderProgram("resources/tex.vert", "resources/tex.frag");
+	// ShaderProgram my_transparent_shader = ShaderProgram("resources/tex.vert", "resources/tex.frag");
 	shader_prog_ID = my_shader.getID();
 
 	// Define the 5x5 labyrinth layout
@@ -286,6 +286,10 @@ void App::init_assets(void)
 	models.back().transparent = true;
 
 	// Keep the cube non-transparent
+	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/minecraft_glass.png");
+	models.back().origin = glm::vec3(2.0f, 2.0f, 2.0f);
+	models.back().transparent = true;
+
 	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
 	models.back().origin = glm::vec3(0.0f, 2.0f, 0.0f);
 	models.back().transparent = true;
@@ -374,29 +378,32 @@ int App::run(void)
 				model.update(totalTime);
 			}
 
-			std::vector<Model*> transparentModels;
-			for (auto &model : models){
-				if(!model.transparent){
+			std::vector<Model *> transparentModels;
+			for (auto &model : models)
+			{
+				if (!model.transparent)
+				{
 					model.draw();
 				}
-				else{
+				else
+				{
 					transparentModels.push_back(&model);
 				}
 			}
 
-			std::sort(transparentModels.begin(), transparentModels.end(), [&](Model* a, Model* b) {
+			std::sort(transparentModels.begin(), transparentModels.end(), [&](Model *a, Model *b)
+					  {
 				glm::vec3 posA = a->origin;
 				glm::vec3 posB = b->origin;
-				return glm::distance(camera.Position, posA) > glm::distance(camera.Position, posB);
-			});
+				return glm::distance(camera.Position, posA) > glm::distance(camera.Position, posB); });
 
 			glEnable(GL_BLEND);
-			//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glDepthMask(GL_FALSE);
 			for (auto &model : transparentModels)
 			{
 				model->draw();
-				//std::cout << "Drawing transparent model\n";
+				// std::cout << "Drawing transparent model\n";
 			}
 			glDepthMask(GL_TRUE);
 			glDisable(GL_BLEND);
