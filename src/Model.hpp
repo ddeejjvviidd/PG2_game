@@ -13,7 +13,12 @@
 class Model
 {
 public:
-    enum Type { OBJECT, FLAT_FLOOR, HEIGHTMAP };
+    enum Type
+    {
+        OBJECT,
+        FLAT_FLOOR,
+        HEIGHTMAP
+    };
     Type type = OBJECT;
 
     std::vector<Mesh> meshes;
@@ -28,6 +33,8 @@ public:
     std::vector<float> heightData;
 
     bool transparent = false; // Flag to indicate if the model is transparent
+
+    bool isSun = false;
 
     Model() = default; // Add default constructor
 
@@ -99,10 +106,10 @@ public:
         v2.TexCoords = glm::vec2(1.0f, 1.0f);
         v3.TexCoords = glm::vec2(0.0f, 1.0f);
 
-        v0.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
-        v1.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
-        v2.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
-        v3.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
+        v0.Normal = glm::vec3(1.0f, 0.0f, 0.0f);
+        v1.Normal = glm::vec3(1.0f, 0.0f, 0.0f);
+        v2.Normal = glm::vec3(1.0f, 0.0f, 0.0f);
+        v3.Normal = glm::vec3(1.0f, 0.0f, 0.0f);
 
         vertices.push_back(v0);
         vertices.push_back(v1);
@@ -159,7 +166,7 @@ public:
                 float height = heightmap.at<uchar>(z, x) / 255.0f * heightScale;
                 v.Position = glm::vec3(x - width / 2.0f, height, z - depth / 2.0f);
                 v.TexCoords = glm::vec2(static_cast<float>(x) / (width - 1), static_cast<float>(z) / (depth - 1));
-                v.Normal = glm::vec3(0.0f, 1.0f, 0.0f); // Placeholder
+                v.Normal = glm::vec3(1.0f, 0.0f, 0.0f);
                 vertices.push_back(v);
             }
         }
@@ -189,9 +196,64 @@ public:
         meshes.emplace_back(GL_TRIANGLES, shader, texturePath, vertices, indices, glm::vec3(0.0f), glm::vec3(0.0f));
     }
 
+    // Sphere constructor
+    Model(int segments, ShaderProgram shader, glm::vec3 color)
+        : shader(shader), name("sphere")
+    {
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+
+        // Sphere generation algorithm
+        const float PI = 3.1415926f;
+        for (int i = 0; i <= segments; ++i)
+        {
+            float vAngle = PI * i / segments;
+            for (int j = 0; j <= segments; ++j)
+            {
+                float hAngle = 2 * PI * j / segments;
+
+                Vertex vert;
+                vert.Position = glm::vec3(
+                    sin(vAngle) * cos(hAngle),
+                    cos(vAngle),
+                    sin(vAngle) * sin(hAngle));
+                vert.Normal = vert.Position; // Normals equal to positions for sphere
+                vert.TexCoords = glm::vec2(j / (float)segments, i / (float)segments);
+
+                vertices.push_back(vert);
+            }
+        }
+
+        // Generate indices
+        for (int i = 0; i < segments; ++i)
+        {
+            for (int j = 0; j < segments; ++j)
+            {
+                int first = i * (segments + 1) + j;
+                int second = first + segments + 1;
+
+                indices.push_back(first);
+                indices.push_back(second);
+                indices.push_back(first + 1);
+
+                indices.push_back(second);
+                indices.push_back(second + 1);
+                indices.push_back(first + 1);
+            }
+        }
+
+        meshes.emplace_back(GL_TRIANGLES, shader, "NONE", vertices, indices, // Special "NONE" keyword
+                            glm::vec3(0.0f), glm::vec3(0.0f));
+        meshes.back().diffuse_material = glm::vec4(color, 1.0f);
+        meshes.back().ambient_material = glm::vec4(color, 1.0f);
+        meshes.back().specular_material = glm::vec4(1.0f);
+    }
+
     // Height sampling function
-    float getHeightAt(float worldX, float worldZ) const {
-        if (type != HEIGHTMAP) return 0.0f;
+    float getHeightAt(float worldX, float worldZ) const
+    {
+        if (type != HEIGHTMAP)
+            return 0.0f;
 
         // Convert world coordinates to local coordinates
         float localX = worldX - origin.x;
@@ -208,7 +270,7 @@ public:
         // Calculate exact position in height data
         float xPos = u * (width - 1);
         float zPos = v * (depth - 1);
-        
+
         // Bilinear interpolation
         int x0 = static_cast<int>(xPos);
         int x1 = x0 + 1;
@@ -238,14 +300,16 @@ public:
     }
 
     // Add normal calculation for heightmap
-    glm::vec3 getNormalAt(float worldX, float worldZ) const {
-        if (type != HEIGHTMAP) return glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 getNormalAt(float worldX, float worldZ) const
+    {
+        if (type != HEIGHTMAP)
+            return glm::vec3(0.0f, 1.0f, 0.0f);
 
         const float epsilon = 0.1f;
         float height = getHeightAt(worldX, worldZ);
         float dx = getHeightAt(worldX + epsilon, worldZ) - height;
         float dz = getHeightAt(worldX, worldZ + epsilon) - height;
-        
+
         glm::vec3 tangent(1.0f, dx / epsilon, 0.0f);
         glm::vec3 bitangent(0.0f, dz / epsilon, 1.0f);
         return glm::normalize(glm::cross(tangent, bitangent));
@@ -269,10 +333,9 @@ public:
 
     void draw(glm::vec3 const &offset = glm::vec3(0.0), glm::vec3 const &rotation = glm::vec3(0.0f))
     {
-        // call draw() on mesh (all meshes)
         for (auto const &mesh : meshes)
         {
-            mesh.draw(origin + offset, orientation + rotation);
+            mesh.draw(origin + offset, orientation + rotation, isSun);
         }
     }
 };
