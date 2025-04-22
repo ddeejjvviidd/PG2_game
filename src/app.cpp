@@ -340,6 +340,11 @@ void App::init_assets(void)
 	models.back().origin = glm::vec3(2.0f, 2.0f, 2.0f);
 	models.back().transparent = true;
 
+	// Grass
+	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/grass.png");
+	models.back().origin = glm::vec3(1.0f, 1.0f, 0.0f);
+	models.back().transparent = true;
+
 	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
 	models.back().origin = glm::vec3(0.0f, 2.0f, 0.0f);
 	models.back().transparent = true;
