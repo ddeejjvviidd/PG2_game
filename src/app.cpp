@@ -218,6 +218,40 @@ bool App::init()
 	return true;
 }
 
+void App::UpdateLightUniforms(ShaderProgram &shader)
+{
+	GLuint program = shader.getID();
+
+	// Directional light
+	glUniform3fv(glGetUniformLocation(program, "dirLight.direction"), 1, &sun.direction[0]);
+	glUniform3fv(glGetUniformLocation(program, "dirLight.ambient"), 1, &sun.ambient[0]);
+	glUniform3fv(glGetUniformLocation(program, "dirLight.diffuse"), 1, &sun.diffuse[0]);
+	glUniform3fv(glGetUniformLocation(program, "dirLight.specular"), 1, &sun.specular[0]);
+
+	// Point lights
+	for (int i = 0; i < 3; i++)
+	{
+		std::string prefix = "pointLights[" + std::to_string(i) + "].";
+		glUniform3fv(glGetUniformLocation(program, (prefix + "position").c_str()), 1, &pointLights[i].position[0]);
+		glUniform3fv(glGetUniformLocation(program, (prefix + "ambient").c_str()), 1, &pointLights[i].ambient[0]);
+		glUniform3fv(glGetUniformLocation(program, (prefix + "diffuse").c_str()), 1, &pointLights[i].diffuse[0]);
+		glUniform3fv(glGetUniformLocation(program, (prefix + "specular").c_str()), 1, &pointLights[i].specular[0]);
+		glUniform1f(glGetUniformLocation(program, (prefix + "constant").c_str()), pointLights[i].constant);
+		glUniform1f(glGetUniformLocation(program, (prefix + "linear").c_str()), pointLights[i].linear);
+		glUniform1f(glGetUniformLocation(program, (prefix + "quadratic").c_str()), pointLights[i].quadratic);
+	}
+
+	// Spot light
+	glUniform1i(glGetUniformLocation(program, "useSpotLight"), spotLightEnabled);
+	glUniform3fv(glGetUniformLocation(program, "spotLight.position"), 1, &spotLight.position[0]);
+	glUniform3fv(glGetUniformLocation(program, "spotLight.direction"), 1, &spotLight.direction[0]);
+	glUniform1f(glGetUniformLocation(program, "spotLight.cutOff"), spotLight.cutOff);
+	glUniform1f(glGetUniformLocation(program, "spotLight.outerCutOff"), spotLight.outerCutOff);
+	glUniform3fv(glGetUniformLocation(program, "spotLight.ambient"), 1, &spotLight.ambient[0]);
+	glUniform3fv(glGetUniformLocation(program, "spotLight.diffuse"), 1, &spotLight.diffuse[0]);
+	glUniform3fv(glGetUniformLocation(program, "spotLight.specular"), 1, &spotLight.specular[0]);
+}
+
 void App::init_assets(void)
 {
 
@@ -250,7 +284,7 @@ void App::init_assets(void)
 			if (labyrinth[z][x] == 1)
 			{
 				// Create a cube model at position (x, 0, z)
-				models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
+				models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/box_rgb888.png");
 				models.back().origin = glm::vec3(
 					x * cubeSize - 5.0f, // Center the labyrinth around (0, 0, 0)
 					0.0f,				 // Y = 0 (ground level)
@@ -310,6 +344,34 @@ void App::init_assets(void)
 	models.back().origin = glm::vec3(0.0f, 2.0f, 0.0f);
 	models.back().transparent = true;
 
+	// Add the sun model
+	models.emplace_back(32, my_shader, glm::vec3(1.0f, 1.0f, 0.0f)); // Yellow color passed here
+
+	sunModelIndex = models.size() - 1;
+	models[sunModelIndex].isSun = true;
+	models[sunModelIndex].transparent = false;
+
+	// Initialize point lights
+	pointLights[0].position = glm::vec3(0.0f, 2.0f, 0.0f);
+	pointLights[0].diffuse = glm::vec3(1.0f, 0.0f, 0.0f); // Red light
+	pointLights[0].linear = 0.09f;
+	pointLights[0].quadratic = 0.032f;
+
+	pointLights[1].position = glm::vec3(5.0f, 1.0f, 5.0f);
+	pointLights[1].diffuse = glm::vec3(0.0f, 1.0f, 0.0f); // Green light
+	pointLights[1].linear = 0.22f;
+	pointLights[1].quadratic = 0.20f;
+
+	pointLights[2].position = glm::vec3(-5.0f, 1.5f, -3.0f);
+	pointLights[2].diffuse = glm::vec3(0.0f, 0.0f, 1.0f); // Blue light
+	pointLights[2].linear = 0.14f;
+	pointLights[2].quadratic = 0.07f;
+
+	// Initialize spot light
+	spotLight.direction = glm::vec3(0.0f, 0.0f, 1.0f);
+	spotLight.cutOff = glm::cos(glm::radians(12.5f));
+	spotLight.outerCutOff = glm::cos(glm::radians(17.5f));
+
 	// Initialize projection matrix
 	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 	if (windowHeight <= 0)
@@ -327,75 +389,112 @@ int App::run(void)
 	if (!window)
 		return -1;
 
-	double lastTime = glfwGetTime(); // Time of last FPS update
-	int frameCount = 0;				 // Number of frames since last update
+	double lastTime = glfwGetTime();
+	int frameCount = 0;
+	double startTime = lastTime; // Moved startTime here for clarity
 
 	try
 	{
 		glEnable(GL_DEPTH_TEST);
-		// glCullFace(GL_BACK);
-		// glEnable(GL_CULL_FACE);
 
-		// Disable cursor for FPS-style control
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-		// Get uniform location in GPU program. This will not change, so it can be moved out of the game loop.
 		GLint uniform_color_location = glGetUniformLocation(shader_prog_ID, "uniform_Color");
 		if (uniform_color_location == -1)
 		{
-			std::cerr << "Uniform location is not found in active shader program. Did you forget to activate it?\n";
+			std::cerr << "Uniform 'uniform_Color' not found.\n";
 		}
 
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		while (!glfwWindowShouldClose(window))
 		{
-			// Measure time
 			double currentTime = glfwGetTime();
-			//float totalTime = static_cast<float>(currentTime - startTime);
-			float deltaTime = static_cast<float>(currentTime - lastFrameTime); // Add deltaTime for camera
+			float deltaTime = static_cast<float>(currentTime - lastFrameTime);
 			lastFrameTime = currentTime;
-
-			frameCount++;
 			float totalTime = static_cast<float>(currentTime - startTime);
 
-			// Update FPS every second
+			// Update FPS
+			frameCount++;
 			if (currentTime - lastFpsUpdate >= 1.0)
 			{
 				double fps = frameCount / (currentTime - lastFpsUpdate);
 				std::string title = "FPS: " + std::to_string(static_cast<int>(fps + 0.5)) +
 									" | VSync: " + (vsyncEnabled ? "On" : "Off");
 				glfwSetWindowTitle(window, title.c_str());
-
 				frameCount = 0;
 				lastFpsUpdate = currentTime;
 			}
 
-			// Clear OpenGL canvas, both color buffer and Z-buffer
+			float angle = totalTime * 15.0f;
+			sun.direction = glm::normalize(glm::vec3(
+				sin(glm::radians(angle)),
+				cos(glm::radians(angle)),
+				0.0f));
+
+			float sunHeight = sun.direction.y;
+			sun.ambient = glm::vec3(0.2f) * (0.75f + 0.75f * sunHeight);
+			sun.diffuse = glm::vec3(0.5f) * (0.75f + 0.75f * sunHeight);
+
+			// Update sun model position
+			float distance = 20.0f; // Closer sun
+			glm::vec3 sunPosition = sun.direction * distance;
+			models[sunModelIndex].origin = sunPosition;
+
+			std::cout << "sun.direction.y: " << sun.direction.y << ", ambient: " << sun.ambient.x << ", diffuse: " << sun.diffuse.x << std::endl;
+
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			// Update camera position based on input
 			glm::vec3 movement = camera.ProcessInput(window, deltaTime);
 			camera.Position += movement;
 
+			// Update spot light to follow camera
+			spotLight.position = camera.Position;
+			spotLight.direction = camera.Front;
+
+			// Update all light uniforms
+			UpdateLightUniforms(models[0].shader); // Assuming first model has the shader
+
 			glUseProgram(shader_prog_ID);
 
-			// set uniform parameter for shader
-			// (try to change the color in key callback)
-			if (uniform_color_location != -1) // Optional if shaders use textures only
+			if (uniform_color_location != -1)
 				glUniform4f(uniform_color_location, r, g, b, a);
 
-			// Set view and projection matrices using camera
+			// Update view and projection matrices
 			glm::mat4 viewMatrix = camera.GetViewMatrix();
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uV_m"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-			// Update time for all models
+			// Update view position
+			glm::vec3 cameraPos = camera.Position;
+			GLint viewPosLoc = glGetUniformLocation(shader_prog_ID, "viewPos");
+			if (viewPosLoc != -1)
+				glUniform3fv(viewPosLoc, 1, glm::value_ptr(cameraPos));
+
+			// Update sun uniforms
+			GLint sunDirLoc = glGetUniformLocation(shader_prog_ID, "sun.direction");
+			if (sunDirLoc != -1)
+				glUniform3fv(sunDirLoc, 1, glm::value_ptr(sun.direction));
+
+			GLint sunAmbientLoc = glGetUniformLocation(shader_prog_ID, "sun.ambient");
+			if (sunAmbientLoc != -1)
+				glUniform3fv(sunAmbientLoc, 1, glm::value_ptr(sun.ambient));
+
+			GLint sunDiffuseLoc = glGetUniformLocation(shader_prog_ID, "sun.diffuse");
+			if (sunDiffuseLoc != -1)
+				glUniform3fv(sunDiffuseLoc, 1, glm::value_ptr(sun.diffuse));
+
+			GLint sunSpecularLoc = glGetUniformLocation(shader_prog_ID, "sun.specular");
+			if (sunSpecularLoc != -1)
+				glUniform3fv(sunSpecularLoc, 1, glm::value_ptr(sun.specular));
+
+			// Update models
 			for (auto &model : models)
 			{
 				model.update(totalTime);
 			}
 
+			// Draw non-transparent models
 			std::vector<Model *> transparentModels;
 			for (auto &model : models)
 			{
@@ -409,32 +508,29 @@ int App::run(void)
 				}
 			}
 
+			// Sort and draw transparent models
 			std::sort(transparentModels.begin(), transparentModels.end(), [&](Model *a, Model *b)
 					  {
-				glm::vec3 posA = a->origin;
-				glm::vec3 posB = b->origin;
-				return glm::distance(camera.Position, posA) > glm::distance(camera.Position, posB); });
+                glm::vec3 posA = a->origin;
+                glm::vec3 posB = b->origin;
+                return glm::distance(camera.Position, posA) > glm::distance(camera.Position, posB); });
 
 			glEnable(GL_BLEND);
-			// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glDepthMask(GL_FALSE);
 			for (auto &model : transparentModels)
 			{
 				model->draw();
-				// std::cout << "Drawing transparent model\n";
 			}
 			glDepthMask(GL_TRUE);
 			glDisable(GL_BLEND);
 
-			// Poll for and process events
 			glfwPollEvents();
-			// Swap front and back buffers
 			glfwSwapBuffers(window);
 		}
 	}
-	catch (std::exception const &e)
+	catch (const std::exception &e)
 	{
-		std::cerr << "App failed : " << e.what() << std::endl;
+		std::cerr << "App failed: " << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
 
@@ -522,6 +618,9 @@ void App::key_callback(GLFWwindow *window, int key, int scancode, int action, in
 				b = 0.0f;
 			}
 			std::cout << "b = " << b << std::endl;
+			break;
+		case GLFW_KEY_L:
+			spotLightEnabled = !spotLightEnabled;
 			break;
 		default:
 			break;

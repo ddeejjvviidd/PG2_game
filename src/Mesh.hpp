@@ -135,7 +135,7 @@ public:
     GLuint getVAO() const { return VAO; }
     GLsizei getIndexCount() const { return static_cast<GLsizei>(indices.size()); } // Getter for index count
 
-    void draw(glm::vec3 const &offset, glm::vec3 const &rotation) const
+    void draw(glm::vec3 const &offset, glm::vec3 const &rotation, bool isSun = false) const
     {
         if (VAO == 0)
         {
@@ -144,6 +144,17 @@ public:
         }
 
         shader.activate();
+
+        // Set the isLightSource uniform based on isSun
+        // GLint isLightSourceLoc = glGetUniformLocation(shader.getID(), "isLightSource");
+        // if (isLightSourceLoc != -1)
+        // {
+        //     glUniform1i(isLightSourceLoc, isSun ? 1 : 0);
+        // }
+        // else
+        // {
+        //     std::cerr << "Warning: 'isLightSource' uniform not found in shader\n";
+        // }
 
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::translate(modelMatrix, origin + offset);
@@ -155,7 +166,7 @@ public:
         modelMatrix = glm::rotate(modelMatrix, glm::radians(orientation.z), glm::vec3(0.0f, 0.0f, 1.0f));
         modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f)); // Adjust scale if needed
 
-        GLint modelLoc = glGetUniformLocation(shader.getID(), "uM_m"); // Changed to uM_m
+        GLint modelLoc = glGetUniformLocation(shader.getID(), "uM_m");
         if (modelLoc != -1)
         {
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
@@ -164,6 +175,23 @@ public:
         {
             std::cerr << "Warning: 'uM_m' uniform not found in shader\n";
         }
+
+        // Set material properties
+        GLint matAmbientLoc = glGetUniformLocation(shader.getID(), "material.ambient");
+        if (matAmbientLoc != -1)
+            glUniform3fv(matAmbientLoc, 1, glm::value_ptr(glm::vec3(ambient_material)));
+
+        GLint matDiffuseLoc = glGetUniformLocation(shader.getID(), "material.diffuse");
+        if (matDiffuseLoc != -1)
+            glUniform3fv(matDiffuseLoc, 1, glm::value_ptr(glm::vec3(diffuse_material)));
+
+        GLint matSpecularLoc = glGetUniformLocation(shader.getID(), "material.specular");
+        if (matSpecularLoc != -1)
+            glUniform3fv(matSpecularLoc, 1, glm::value_ptr(glm::vec3(specular_material)));
+
+        GLint matShininessLoc = glGetUniformLocation(shader.getID(), "material.shininess");
+        if (matShininessLoc != -1)
+            glUniform1f(matShininessLoc, reflectivity);
 
         // Bind texture if available
         if (texture_id != 0)
@@ -175,7 +203,7 @@ public:
 
         glBindVertexArray(VAO);
         glDrawElements(primitive_type, getIndexCount(), GL_UNSIGNED_INT, 0);
-        //glBindVertexArray(0);
+        // glBindVertexArray(0);
     }
 
     void clear(void)
@@ -220,6 +248,32 @@ private:
 
     void loadTexture(const std::string &texturePath)
     {
+        if (texturePath == "NONE")
+        {
+            // Create 1x1 yellow texture
+            unsigned char yellow[] = {255, 255, 0, 255};
+            glGenTextures(1, &texture_id);
+            glBindTexture(GL_TEXTURE_2D, texture_id);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, yellow);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            return;
+        }
+
+        if (texturePath.empty())
+        {
+            // Default white texture
+            unsigned char white[] = {255, 255, 255, 255};
+            glGenTextures(1, &texture_id);
+            glBindTexture(GL_TEXTURE_2D, texture_id);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            return;
+        }
+
         // Load image with OpenCV
         cv::Mat image = cv::imread(texturePath, cv::IMREAD_UNCHANGED);
         if (image.empty())
@@ -230,7 +284,6 @@ private:
 
         // Determine texture format
         // OpenCV loads in BGR, convert to RGB
-        
 
         // Flip vertically (OpenGL expects bottom-left origin, OpenCV is top-left)
         cv::flip(image, image, 0);
@@ -246,12 +299,15 @@ private:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // Upload texture data
-        if (image.channels() == 4) {
-            //cv::cvtColor(image, image, cv::COLOR_BGRA2RGBA);
+        if (image.channels() == 4)
+        {
+            // cv::cvtColor(image, image, cv::COLOR_BGRA2RGBA);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image.cols, image.rows, 0, GL_BGRA, GL_UNSIGNED_BYTE, image.data);
             std::cout << "Loaded texture with alpha channel" << std::endl;
-        } else {
-            //cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+        }
+        else
+        {
+            // cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, image.cols, image.rows, 0, GL_BGR, GL_UNSIGNED_BYTE, image.data);
         }
 
