@@ -25,8 +25,8 @@ public:
     GLfloat JumpForce = 5.0f;
     GLfloat Gravity = -9.81f;
 
-    float playerHeight = 1.8f; // Height of the player (for jumping)
-    float playerRadius = 0.3f;
+    float playerHeight = 1.0f; // Height of the player (for jumping)
+    float playerRadius = 0.2f;
     bool isGrounded = false;
 
     Camera(glm::vec3 position) : Position(position), WorldUp(glm::vec3(0.0f, 1.0f, 0.0f))
@@ -49,14 +49,17 @@ public:
         glm::vec3 inputDirection(0.0f);
         
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            inputDirection += Front;
+            inputDirection += glm::normalize(glm::vec3(Front.x, 0.0f, Front.z));
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            inputDirection -= Front;
+            inputDirection -= glm::normalize(glm::vec3(Front.x, 0.0f, Front.z));
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
             inputDirection -= Right;
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             inputDirection += Right;
-            
+        
+        if (glm::length(inputDirection) > 0.0f)
+            inputDirection = glm::normalize(inputDirection) * MovementSpeed;
+
         // Jump only if grounded
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && isGrounded) {
             Velocity.y = JumpForce;
@@ -64,15 +67,16 @@ public:
         }
 
         // Apply movement speed only if there's input
-        if (glm::length(inputDirection) > 0.0f) {
-            inputDirection = glm::normalize(inputDirection) * MovementSpeed;
-        }
+        //if (glm::length(inputDirection) > 0.0f) {
+        //    inputDirection = glm::normalize(inputDirection) * MovementSpeed;
+        //}
 
         // Apply gravity
         Velocity.y += Gravity * deltaTime;
         
         // Update position based on velocity
-        glm::vec3 movement = (inputDirection + Velocity) * deltaTime;
+        glm::vec3 movement = inputDirection * deltaTime;
+        movement.y = Velocity.y * deltaTime;
         
         return movement;
     }

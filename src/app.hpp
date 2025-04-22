@@ -57,6 +57,7 @@ public:
     void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
     void framebuffer_size_callback(GLFWwindow *window, int width, int height);
     void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
+    bool checkFloorCollision(const glm::vec3& position, float playerHalfHeight, float& floorHeight);
 
 private:
     GLFWwindow *window;

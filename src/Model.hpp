@@ -13,11 +13,19 @@
 class Model
 {
 public:
+    enum Type { OBJECT, FLAT_FLOOR, HEIGHTMAP };
+    Type type = OBJECT;
+
     std::vector<Mesh> meshes;
     std::string name;
     glm::vec3 origin{};
     glm::vec3 orientation{};
     ShaderProgram shader;
+
+    float width = 0.0f;
+    float depth = 0.0f;
+    float heightScale = 1.0f;
+    std::vector<float> heightData;
 
     bool transparent = false; // Flag to indicate if the model is transparent
 
@@ -74,7 +82,7 @@ public:
 
     // Flat plane constructor (for labyrinth floor)
     Model(float width, float depth, ShaderProgram shader, const std::string &texturePath)
-        : shader(shader), name("floor")
+        : shader(shader), name("floor"), type(FLAT_FLOOR), width(width), depth(depth)
     {
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
@@ -114,7 +122,7 @@ public:
 
     // Heightmap constructor
     Model(const std::string &heightmapPath, ShaderProgram shader, const std::string &texturePath, int width, int depth, float heightScale)
-        : shader(shader), name("heightmap")
+        : shader(shader), name("heightmap"), type(HEIGHTMAP), width(static_cast<float>(width)), depth(static_cast<float>(depth)), heightScale(heightScale)
     {
         cv::Mat heightmap = cv::imread(heightmapPath, cv::IMREAD_GRAYSCALE);
         if (heightmap.empty())
@@ -123,9 +131,20 @@ public:
             throw std::runtime_error("Heightmap loading failed");
         }
 
+        // Resize heightmap to match the specified width and depth
         if (heightmap.cols != width || heightmap.rows != depth)
         {
             cv::resize(heightmap, heightmap, cv::Size(width, depth));
+        }
+
+        // store height data normalized [0,1]
+        heightData.resize(width * depth);
+        for (int z = 0; z < depth; ++z)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                heightData[z * width + x] = heightmap.at<uchar>(z, x) / 255.0f;
+            }
         }
 
         std::vector<Vertex> vertices;
@@ -168,6 +187,68 @@ public:
         }
 
         meshes.emplace_back(GL_TRIANGLES, shader, texturePath, vertices, indices, glm::vec3(0.0f), glm::vec3(0.0f));
+    }
+
+    // Height sampling function
+    float getHeightAt(float worldX, float worldZ) const {
+        if (type != HEIGHTMAP) return 0.0f;
+
+        // Convert world coordinates to local coordinates
+        float localX = worldX - origin.x;
+        float localZ = worldZ - origin.z;
+
+        // Convert to UV coordinates
+        float u = (localX / width) + 0.5f;
+        float v = (localZ / depth) + 0.5f;
+
+        // Clamp to valid range
+        u = glm::clamp(u, 0.0f, 1.0f);
+        v = glm::clamp(v, 0.0f, 1.0f);
+
+        // Calculate exact position in height data
+        float xPos = u * (width - 1);
+        float zPos = v * (depth - 1);
+        
+        // Bilinear interpolation
+        int x0 = static_cast<int>(xPos);
+        int x1 = x0 + 1;
+        int z0 = static_cast<int>(zPos);
+        int z1 = z0 + 1;
+
+        // Clamp indices
+        x0 = glm::clamp(x0, 0, static_cast<int>(width) - 1);
+        x1 = glm::clamp(x1, 0, static_cast<int>(width) - 1);
+        z0 = glm::clamp(z0, 0, static_cast<int>(depth) - 1);
+        z1 = glm::clamp(z1, 0, static_cast<int>(depth) - 1);
+
+        // Get heights
+        float h00 = heightData[z0 * width + x0];
+        float h01 = heightData[z1 * width + x0];
+        float h10 = heightData[z0 * width + x1];
+        float h11 = heightData[z1 * width + x1];
+
+        // Interpolation factors
+        float xFactor = xPos - x0;
+        float zFactor = zPos - z0;
+
+        // Interpolate
+        float top = h00 * (1 - xFactor) + h10 * xFactor;
+        float bottom = h01 * (1 - xFactor) + h11 * xFactor;
+        return (top * (1 - zFactor) + bottom * zFactor) * heightScale;
+    }
+
+    // Add normal calculation for heightmap
+    glm::vec3 getNormalAt(float worldX, float worldZ) const {
+        if (type != HEIGHTMAP) return glm::vec3(0.0f, 1.0f, 0.0f);
+
+        const float epsilon = 0.1f;
+        float height = getHeightAt(worldX, worldZ);
+        float dx = getHeightAt(worldX + epsilon, worldZ) - height;
+        float dz = getHeightAt(worldX, worldZ + epsilon) - height;
+        
+        glm::vec3 tangent(1.0f, dx / epsilon, 0.0f);
+        glm::vec3 bitangent(0.0f, dz / epsilon, 1.0f);
+        return glm::normalize(glm::cross(tangent, bitangent));
     }
 
     // update position etc. based on running time

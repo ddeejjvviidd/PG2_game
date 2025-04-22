@@ -322,6 +322,60 @@ void App::init_assets(void)
 	glfwGetCursorPos(window, &cursorLastX, &cursorLastY);
 }
 
+bool App::checkFloorCollision(const glm::vec3& position, float playerHalfHeight, float& floorHeight) {
+	floorHeight = -FLT_MAX;
+	
+	for (auto& floorModel : floor) {
+		float currentFloorY = -FLT_MAX;
+		
+		if (floorModel.type == Model::FLAT_FLOOR) {
+			// Check flat floor collision
+			if (position.x >= floorModel.origin.x - floorModel.width/2 &&
+				position.x <= floorModel.origin.x + floorModel.width/2 &&
+				position.z >= floorModel.origin.z - floorModel.depth/2 &&
+				position.z <= floorModel.origin.z + floorModel.depth/2) {
+				currentFloorY = floorModel.origin.y + 0.55f;
+			}
+		}
+		else if (floorModel.type == Model::HEIGHTMAP) {
+			// Check heightmap collision
+			if (position.x >= floorModel.origin.x - floorModel.width/2 &&
+				position.x <= floorModel.origin.x + floorModel.width/2 &&
+				position.z >= floorModel.origin.z - floorModel.depth/2 &&
+				position.z <= floorModel.origin.z + floorModel.depth/2) {
+				currentFloorY = floorModel.origin.y + floorModel.getHeightAt(position.x, position.z) + 0.55f;
+			}
+		}
+		
+		if (currentFloorY > floorHeight) {
+			floorHeight = currentFloorY;
+		}
+	}
+	
+	return (position.y - playerHalfHeight) <= floorHeight;
+}
+
+//bool checkObjectCollision(const glm::vec3& position, const glm::vec3& size) {
+//	for (auto& model : models) {
+//		// Skip transparent models and floor models
+//		if (model.transparent) continue;
+//		
+//		// Simple AABB collision check
+//		glm::vec3 modelMin = model.origin - glm::vec3(0.5f);
+//		glm::vec3 modelMax = model.origin + glm::vec3(0.5f);
+//		
+//		glm::vec3 playerMin = position - size;
+//		glm::vec3 playerMax = position + size;
+//		
+//		if (playerMax.x > modelMin.x && playerMin.x < modelMax.x &&
+//			playerMax.y > modelMin.y && playerMin.y < modelMax.y &&
+//			playerMax.z > modelMin.z && playerMin.z < modelMax.z) {
+//			return true;
+//		}
+//	}
+//	return false;
+//}
+
 int App::run(void)
 {
 	if (!window)
@@ -376,7 +430,38 @@ int App::run(void)
 
 			// Update camera position based on input
 			glm::vec3 movement = camera.ProcessInput(window, deltaTime);
-			camera.Position += movement;
+			glm::vec3 newPosition = camera.Position + movement;
+
+			// Player collision parameters
+			const float playerHalfHeight = camera.playerHeight / 2.0f;
+			const glm::vec3 playerSize(camera.playerRadius, playerHalfHeight, camera.playerRadius);
+
+			// Floor collision
+			float floorHeight;
+			if (checkFloorCollision(newPosition, playerHalfHeight, floorHeight)) {
+				// Snap to floor and stop vertical movement
+				newPosition.y = floorHeight + playerHalfHeight;
+				camera.Velocity.y = 0.0f;
+				camera.isGrounded = true;
+			} else {
+				camera.isGrounded = false;
+			}
+
+			// Object collision checks (separate axes)
+			//bool collisionX = checkObjectCollision(glm::vec3(newPosition.x, camera.Position.y, camera.Position.z), playerSize);
+			//bool collisionY = checkObjectCollision(glm::vec3(camera.Position.x, newPosition.y, camera.Position.z), playerSize);
+			//bool collisionZ = checkObjectCollision(glm::vec3(camera.Position.x, camera.Position.y, newPosition.z), playerSize);
+
+			// Update position with collision response
+			//if (collisionX) newPosition.x = camera.Position.x;
+			//if (collisionY) {
+			//	newPosition.y = camera.Position.y;
+			//	camera.Velocity.y = 0.0f; // Stop vertical movement if hitting ceiling
+			//}
+			//if (collisionZ) newPosition.z = camera.Position.z;
+
+			// Update final camera position
+			camera.Position = newPosition;
 
 			glUseProgram(shader_prog_ID);
 
