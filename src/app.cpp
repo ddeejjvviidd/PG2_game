@@ -299,7 +299,7 @@ void App::init_assets(void)
 	}
 
 	// Flat floor for labyrinth (20x20 units to match 10x10 grid of 2-unit cubes)
-	floor.emplace_back(30.0f, 30.0f, my_shader, "resources/textures/StoneFloorTexture.png");
+	floor.emplace_back(40.0f, 40.0f, my_shader, "resources/textures/StoneFloorTexture.png");
 	floor.back().origin = glm::vec3(0.0f, -0.55f, 0.0f); // Slightly below cubes
 
 	// Heightmap terrain (separate, offset to the right)
@@ -397,28 +397,34 @@ bool App::checkFloorCollision(const glm::vec3 &position, float playerHalfHeight,
 {
 	floorHeight = -FLT_MAX;
 
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	for (auto &floorModel : floor)
 	{
 		float currentFloorY = -FLT_MAX;
 
 		if (floorModel.type == Model::FLAT_FLOOR)
 		{
+			float minX = floorModel.origin.x - floorModel.width / 4;// + 7.5; //- camera.playerRadius;
+			float maxX = floorModel.origin.x + floorModel.width / 4;// - 7.5; //+ camera.playerRadius;
+			float minZ = floorModel.origin.z - floorModel.depth / 4;// + 7.5; //- camera.playerRadius;
+			float maxZ = floorModel.origin.z + floorModel.depth / 4;// - 7.5; //+ camera.playerRadius;
+			//std::cout << "minX: " << minX << ", maxX: " << maxX << ", minZ: " << minZ << ", maxZ: " << maxZ << std::endl;
+			std::cout << "width: " << floorModel.width << ", depth: " << floorModel.depth << std::endl;
 			// Check flat floor collision
-			if (position.x >= floorModel.origin.x - floorModel.width / 2 &&
-				position.x <= floorModel.origin.x + floorModel.width / 2 &&
-				position.z >= floorModel.origin.z - floorModel.depth / 2 &&
-				position.z <= floorModel.origin.z + floorModel.depth / 2)
-			{
-				currentFloorY = floorModel.origin.y + 0.55f;
-			}
+			if (position.x >= minX && position.x <= maxX &&
+                position.z >= minZ && position.z <= maxZ)
+            {
+                currentFloorY = floorModel.origin.y + 0.55f;
+            }
 		}
 		else if (floorModel.type == Model::HEIGHTMAP)
 		{
+			
 			// Check heightmap collision
-			if (position.x >= floorModel.origin.x - floorModel.width / 2 &&
-				position.x <= floorModel.origin.x + floorModel.width / 2 &&
-				position.z >= floorModel.origin.z - floorModel.depth / 2 &&
-				position.z <= floorModel.origin.z + floorModel.depth / 2)
+			if (position.x >= floorModel.origin.x - floorModel.width / 4 &&
+				position.x <= floorModel.origin.x + floorModel.width / 4 &&
+				position.z >= floorModel.origin.z - floorModel.depth / 4 &&
+				position.z <= floorModel.origin.z + floorModel.depth / 4)
 			{
 				currentFloorY = floorModel.origin.y + floorModel.getHeightAt(position.x, position.z) + 0.55f;
 			}
@@ -428,7 +434,9 @@ bool App::checkFloorCollision(const glm::vec3 &position, float playerHalfHeight,
 		{
 			floorHeight = currentFloorY;
 		}
+		//floorModel.draw();
 	}
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	return (position.y - playerHalfHeight) <= floorHeight;
 }
@@ -511,7 +519,7 @@ int App::run(void)
 			glm::vec3 sunPosition = sun.direction * distance;
 			models[sunModelIndex].origin = sunPosition;
 
-			std::cout << "sun.direction.y: " << sun.direction.y << ", ambient: " << sun.ambient.x << ", diffuse: " << sun.diffuse.x << std::endl;
+			//std::cout << "sun.direction.y: " << sun.direction.y << ", ambient: " << sun.ambient.x << ", diffuse: " << sun.diffuse.x << std::endl;
 
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -570,11 +578,13 @@ int App::run(void)
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
 			// Draw floor
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			for (auto &model : floor)
 			{
 				model.update(totalTime);
 				model.draw();
 			}
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 			// Update view position
 			glm::vec3 cameraPos = camera.Position;

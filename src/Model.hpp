@@ -251,7 +251,7 @@ public:
 
     // Height sampling function
     float getHeightAt(float worldX, float worldZ) const
-    {
+    {   
         if (type != HEIGHTMAP)
             return 0.0f;
 

@@ -25,7 +25,7 @@ public:
     GLfloat JumpForce = 5.0f;
     GLfloat Gravity = -9.81f;
 
-    float playerHeight = 1.0f; // Height of the player (for jumping)
+    float playerHeight = 0.2f; // Height of the player (for jumping)
     float playerRadius = 0.2f;
     bool isGrounded = false;
 
