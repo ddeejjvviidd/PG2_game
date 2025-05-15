@@ -299,7 +299,7 @@ void App::init_assets(void)
 	}
 
 	// Flat floor for labyrinth (20x20 units to match 10x10 grid of 2-unit cubes)
-	floor.emplace_back(40.0f, 40.0f, my_shader, "resources/textures/StoneFloorTexture.png");
+	floor.emplace_back(100.0f, 100.0f, my_shader, "resources/textures/StoneFloorTexture.png");
 	floor.back().origin = glm::vec3(0.0f, -0.55f, 0.0f); // Slightly below cubes
 
 	// Heightmap terrain (separate, offset to the right)
@@ -307,20 +307,6 @@ void App::init_assets(void)
 	floor.back().origin = glm::vec3(0.0f, -0.55f, -20.0f); // Offset 30 units along
 
 	camera = Camera(glm::vec3(0.0f, 20.0f, -7.0f));
-
-	// // Create four triangles at different positions
-	// models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png"); // Front (0, 0, 0)
-	// models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png"); // Back (0, 0, 2)
-	// models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png"); // Left (-2, 0, 0)
-	// models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/grass.png"); // Right (2, 0, 0)
-	// models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/box_rgb888.png");	  // Above (0, 2, 0)
-
-	// // Set positions
-	// models[0].origin = glm::vec3(0.0f, 0.0f, 0.0f);	 // Front
-	// models[1].origin = glm::vec3(0.0f, 0.0f, 2.0f);	 // Back
-	// models[2].origin = glm::vec3(-1.0f, 0.0f, 1.0f); // Left
-	// models[3].origin = glm::vec3(1.0f, 0.0f, 1.0f);	 // Right
-	// models[4].origin = glm::vec3(0.0f, 2.0f, 0.0f);	 // Cube above
 
 	// Transparent test
 	models.emplace_back("resources/objects/triangle.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
@@ -347,6 +333,24 @@ void App::init_assets(void)
 	// Grass
 	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/grass.png");
 	models.back().origin = glm::vec3(1.0f, 1.0f, 0.0f);
+	models.back().transparent = true;
+
+	// Original sphere (will be animated)
+	sphere1Index = models.size();
+	models.emplace_back("resources/objects/sphere.obj", my_shader, "resources/textures/sphere_texture.png");
+	models.back().origin = glm::vec3(1.0f, 7.0f, 0.0f);
+	models.back().transparent = true;
+
+	// Second sphere
+	sphere2Index = models.size();
+	models.emplace_back("resources/objects/sphere.obj", my_shader, "resources/textures/sphere_texture.png");
+	models.back().origin = glm::vec3(-2.0f, 7.0f, 3.0f);
+	models.back().transparent = true;
+
+	// Third sphere
+	sphere3Index = models.size();
+	models.emplace_back("resources/objects/sphere.obj", my_shader, "resources/textures/sphere_texture.png");
+	models.back().origin = glm::vec3(-2.0f, 10.0f, 0.0f);
 	models.back().transparent = true;
 
 	models.emplace_back("resources/objects/cube.obj", my_shader, "resources/textures/mirek_vyspely_512.png");
@@ -397,29 +401,29 @@ bool App::checkFloorCollision(const glm::vec3 &position, float playerHalfHeight,
 {
 	floorHeight = -FLT_MAX;
 
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	for (auto &floorModel : floor)
 	{
 		float currentFloorY = -FLT_MAX;
 
 		if (floorModel.type == Model::FLAT_FLOOR)
 		{
-			float minX = floorModel.origin.x - floorModel.width / 4;// + 7.5; //- camera.playerRadius;
-			float maxX = floorModel.origin.x + floorModel.width / 4;// - 7.5; //+ camera.playerRadius;
-			float minZ = floorModel.origin.z - floorModel.depth / 4;// + 7.5; //- camera.playerRadius;
-			float maxZ = floorModel.origin.z + floorModel.depth / 4;// - 7.5; //+ camera.playerRadius;
-			//std::cout << "minX: " << minX << ", maxX: " << maxX << ", minZ: " << minZ << ", maxZ: " << maxZ << std::endl;
+			float minX = floorModel.origin.x - floorModel.width / 4; // + 7.5; //- camera.playerRadius;
+			float maxX = floorModel.origin.x + floorModel.width / 4; // - 7.5; //+ camera.playerRadius;
+			float minZ = floorModel.origin.z - floorModel.depth / 4; // + 7.5; //- camera.playerRadius;
+			float maxZ = floorModel.origin.z + floorModel.depth / 4; // - 7.5; //+ camera.playerRadius;
+			// std::cout << "minX: " << minX << ", maxX: " << maxX << ", minZ: " << minZ << ", maxZ: " << maxZ << std::endl;
 			std::cout << "width: " << floorModel.width << ", depth: " << floorModel.depth << std::endl;
 			// Check flat floor collision
 			if (position.x >= minX && position.x <= maxX &&
-                position.z >= minZ && position.z <= maxZ)
-            {
-                currentFloorY = floorModel.origin.y + 0.55f;
-            }
+				position.z >= minZ && position.z <= maxZ)
+			{
+				currentFloorY = floorModel.origin.y + 0.55f;
+			}
 		}
 		else if (floorModel.type == Model::HEIGHTMAP)
 		{
-			
+
 			// Check heightmap collision
 			if (position.x >= floorModel.origin.x - floorModel.width / 4 &&
 				position.x <= floorModel.origin.x + floorModel.width / 4 &&
@@ -434,9 +438,9 @@ bool App::checkFloorCollision(const glm::vec3 &position, float playerHalfHeight,
 		{
 			floorHeight = currentFloorY;
 		}
-		//floorModel.draw();
+		// floorModel.draw();
 	}
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	return (position.y - playerHalfHeight) <= floorHeight;
 }
@@ -519,7 +523,23 @@ int App::run(void)
 			glm::vec3 sunPosition = sun.direction * distance;
 			models[sunModelIndex].origin = sunPosition;
 
-			//std::cout << "sun.direction.y: " << sun.direction.y << ", ambient: " << sun.ambient.x << ", diffuse: " << sun.diffuse.x << std::endl;
+			// std::cout << "sun.direction.y: " << sun.direction.y << ", ambient: " << sun.ambient.x << ", diffuse: " << sun.diffuse.x << std::endl;
+
+			// Animate spheres (orbiting only, no rotation)
+			float angle1 = totalTime * 1.0f;
+			models[sphere1Index].origin.x = -2.0f + 3.0f * cos(angle1);
+			models[sphere1Index].origin.z = 0.0f + 3.0f * sin(angle1);
+			models[sphere1Index].origin.y = 7.0f;
+
+			float angle2 = totalTime * 1.5f + 2.0f * 3.1415926535f / 3.0f;
+			models[sphere2Index].origin.x = -2.0f + 3.0f * cos(angle2);
+			models[sphere2Index].origin.y = 7.0f + 3.0f * sin(angle2);
+			models[sphere2Index].origin.z = 0.0f;
+
+			float angle3 = totalTime * 2.0f + 4.0f * 3.1415926535f / 3.0f;
+			models[sphere3Index].origin.y = 7.0f + 3.0f * cos(angle3);
+			models[sphere3Index].origin.z = 0.0f + 3.0f * sin(angle3);
+			models[sphere3Index].origin.x = -2.0f;
 
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -578,13 +598,13 @@ int App::run(void)
 			glUniformMatrix4fv(glGetUniformLocation(shader_prog_ID, "uP_m"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
 			// Draw floor
-			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			for (auto &model : floor)
 			{
 				model.update(totalTime);
 				model.draw();
 			}
-			//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 			// Update view position
 			glm::vec3 cameraPos = camera.Position;

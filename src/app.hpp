@@ -59,6 +59,9 @@ public:
     void cursor_position_callback(GLFWwindow *window, double xpos, double ypos);
     bool checkFloorCollision(const glm::vec3 &position, float playerHalfHeight, float &floorHeight);
     void toggleFullscreen();
+    size_t sphere1Index;
+    size_t sphere2Index;
+    size_t sphere3Index;
 
     struct DirectionalLight
     {
