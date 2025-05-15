@@ -10,7 +10,7 @@ Send full project and installation procedures in advance (use gitlab.tul.cz, git
 
 - [ ]  3D GL Core profile + shaders version 4.6, GL debug enabled, JSON config file
 - [x]  high performance => at least 60 FPS (display FPS)
-- [ ]  allow VSync control, antialiasing, fullscreen vs. windowed switching (restore window position & size)
+- [x]  allow VSync control, antialiasing, fullscreen vs. windowed switching (restore window position & size)
 - [x]  event processing (camera, object, app behaviour...): mouse (both axes, wheel), keyboard
 - [ ]  multiple different independently moving 3D models, at leats two loaded from file
 - [x]  at least three different textures (or subtextures from texture atlas etc.)

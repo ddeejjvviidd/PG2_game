@@ -132,6 +132,10 @@ bool App::init()
 			std::cerr << "Failed to create GLFW window\n";
 			throw std::runtime_error("GLFW window creation failed");
 		}
+
+		windowedWidth = resX;
+		windowedHeight = resY;
+
 		glfwMakeContextCurrent(window);
 		glfwSetWindowUserPointer(window, this);
 		glfwSetScrollCallback(window, [](GLFWwindow *w, double x, double y)
@@ -679,6 +683,29 @@ void App::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 	std::cout << "FOV: " << fov << "\n";
 }
 
+void App::toggleFullscreen()
+{
+	GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+	const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+
+	if (!isFullscreen)
+	{
+		// Save current window position and size
+		glfwGetWindowPos(window, &windowPosX, &windowPosY);
+		glfwGetWindowSize(window, &windowedWidth, &windowedHeight);
+
+		// Switch to fullscreen
+		glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+		isFullscreen = true;
+	}
+	else
+	{
+		// Restore windowed mode
+		glfwSetWindowMonitor(window, nullptr, windowPosX, windowPosY, windowedWidth, windowedHeight, 0);
+		isFullscreen = false;
+	}
+}
+
 void App::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
 	if ((action == GLFW_PRESS) || (action == GLFW_REPEAT))
@@ -692,6 +719,9 @@ void App::key_callback(GLFWwindow *window, int key, int scancode, int action, in
 			vsyncEnabled = !vsyncEnabled;			// Toggle VSync state
 			glfwSwapInterval(vsyncEnabled ? 1 : 0); // Apply VSync setting
 			// Title will update in the next FPS cycle
+			break;
+		case GLFW_KEY_F11:
+			toggleFullscreen(); // 🔁 Toggle fullscreen when F11 is pressed
 			break;
 		case GLFW_KEY_R:
 			if (r == 0.0f)

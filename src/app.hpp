@@ -58,6 +58,7 @@ public:
     void framebuffer_size_callback(GLFWwindow *window, int width, int height);
     void cursor_position_callback(GLFWwindow *window, double xpos, double ypos);
     bool checkFloorCollision(const glm::vec3 &position, float playerHalfHeight, float &floorHeight);
+    void toggleFullscreen();
 
     struct DirectionalLight
     {
@@ -150,4 +151,8 @@ private:
     bool spotLightEnabled = true;
 
     void UpdateLightUniforms(ShaderProgram &shader);
+
+    bool isFullscreen = false;
+    int windowPosX = 100, windowPosY = 100;        // default starting position
+    int windowedWidth = 800, windowedHeight = 600; // default windowed size
 };
