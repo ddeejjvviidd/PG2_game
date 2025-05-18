@@ -9,38 +9,6 @@
 #include <string>
 #include <vector>
 
-// class App
-// {
-// public:
-//     App();
-
-//     bool init(void);
-//     void init_assets(void);
-//     int run(void);
-//     static void error_callback(int error, const char *description);
-//     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
-//     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
-//     void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
-
-//     GLuint shader_prog_ID;
-//     GLuint VBO_ID{0};
-//     GLuint VAO_ID{0};
-
-//     GLfloat r{1.0f}, g{0.0f}, b{0.0f}, a{1.0f};
-
-//     Mesh mesh;
-
-//     ~App();
-
-// private:
-//     GLFWwindow *window = nullptr;
-//     bool vsyncEnabled;   // Tracks VSync state
-//     std::string appname; // Stores "first_test"
-//     int resX;            // Stores default_resolution.x (1024)
-//     int resY;            // Stores default_resolution.y (768)
-//     Model model;         // Manages the object
-// };
-
 class App
 {
 public:
@@ -58,6 +26,7 @@ public:
     void framebuffer_size_callback(GLFWwindow *window, int width, int height);
     void cursor_position_callback(GLFWwindow *window, double xpos, double ypos);
     bool checkFloorCollision(const glm::vec3 &position, float playerHalfHeight, float &floorHeight);
+    bool checkObjectCollision(const glm::vec3& position, const glm::vec3& size);
     void toggleFullscreen();
     size_t sphere1Index;
     size_t sphere2Index;

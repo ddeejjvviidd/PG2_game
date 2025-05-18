@@ -304,7 +304,7 @@ void App::init_assets(void)
 
 	// Heightmap terrain (separate, offset to the right)
 	floor.emplace_back("resources/textures/heights.png", my_shader, "resources/textures/StoneFloorTexture.png", 50, 50, 5.0f);
-	floor.back().origin = glm::vec3(0.0f, -0.55f, -20.0f); // Offset 30 units along
+	floor.back().origin = glm::vec3(0.0f, -0.55f, -50.0f); // Offset 30 units along
 
 	camera = Camera(glm::vec3(0.0f, 20.0f, -7.0f));
 
@@ -445,26 +445,26 @@ bool App::checkFloorCollision(const glm::vec3 &position, float playerHalfHeight,
 	return (position.y - playerHalfHeight) <= floorHeight;
 }
 
-// bool checkObjectCollision(const glm::vec3& position, const glm::vec3& size) {
-//	for (auto& model : models) {
-//		// Skip transparent models and floor models
-//		if (model.transparent) continue;
-//
-//		// Simple AABB collision check
-//		glm::vec3 modelMin = model.origin - glm::vec3(0.5f);
-//		glm::vec3 modelMax = model.origin + glm::vec3(0.5f);
-//
-//		glm::vec3 playerMin = position - size;
-//		glm::vec3 playerMax = position + size;
-//
-//		if (playerMax.x > modelMin.x && playerMin.x < modelMax.x &&
-//			playerMax.y > modelMin.y && playerMin.y < modelMax.y &&
-//			playerMax.z > modelMin.z && playerMin.z < modelMax.z) {
-//			return true;
-//		}
-//	}
-//	return false;
-// }
+bool App::checkObjectCollision(const glm::vec3& position, const glm::vec3& size) {
+	for (auto& model : models) {
+		// Skip transparent models and floor models
+		if (model.transparent) continue;
+
+		// Simple AABB collision check
+		glm::vec3 modelMin = model.origin - glm::vec3(0.5f);
+		glm::vec3 modelMax = model.origin + glm::vec3(0.5f);
+
+		glm::vec3 playerMin = position - size;
+		glm::vec3 playerMax = position + size;
+
+		if (playerMax.x > modelMin.x && playerMin.x < modelMax.x &&
+			playerMax.y > modelMin.y && playerMin.y < modelMax.y &&
+			playerMax.z > modelMin.z && playerMin.z < modelMax.z) {
+			return true;
+		}
+	}
+	return false;
+}
 
 int App::run(void)
 {
@@ -565,17 +565,51 @@ int App::run(void)
 			}
 
 			// Object collision checks (separate axes)
-			// bool collisionX = checkObjectCollision(glm::vec3(newPosition.x, camera.Position.y, camera.Position.z), playerSize);
-			// bool collisionY = checkObjectCollision(glm::vec3(camera.Position.x, newPosition.y, camera.Position.z), playerSize);
-			// bool collisionZ = checkObjectCollision(glm::vec3(camera.Position.x, camera.Position.y, newPosition.z), playerSize);
+			bool collisionX = checkObjectCollision(glm::vec3(newPosition.x, camera.Position.y, camera.Position.z), playerSize);
+			//bool collisionY = checkObjectCollision(glm::vec3(camera.Position.x, newPosition.y, camera.Position.z), playerSize);
+			bool collisionZ = checkObjectCollision(glm::vec3(camera.Position.x, camera.Position.y, newPosition.z), playerSize);
 
-			// Update position with collision response
-			// if (collisionX) newPosition.x = camera.Position.x;
-			// if (collisionY) {
-			//	newPosition.y = camera.Position.y;
-			//	camera.Velocity.y = 0.0f; // Stop vertical movement if hitting ceiling
-			//}
-			// if (collisionZ) newPosition.z = camera.Position.z;
+			bool collisionY = false;
+			float highestCollisionY = -INFINITY;
+			glm::vec3 yCheckPos(camera.Position.x, newPosition.y, camera.Position.z);
+			for (auto& model : models) {
+				if (model.transparent) continue;
+
+				glm::vec3 modelMin = model.origin - glm::vec3(0.5f);
+				glm::vec3 modelMax = model.origin + glm::vec3(0.5f);
+
+				glm::vec3 playerMin = yCheckPos - playerSize;
+				glm::vec3 playerMax = yCheckPos + playerSize;
+
+				bool overlap = (playerMax.x > modelMin.x && playerMin.x < modelMax.x) &&
+							(playerMax.y > modelMin.y && playerMin.y < modelMax.y) &&
+							(playerMax.z > modelMin.z && playerMin.z < modelMax.z);
+
+				if (overlap) {
+					collisionY = true;
+					if (modelMax.y > highestCollisionY) {
+						highestCollisionY = modelMax.y;
+					}
+				}
+			}
+
+			// Handle Y-axis collision
+			if (collisionY) {
+				if (camera.Velocity.y < 0.0f) {
+					// Land on the object's top
+					newPosition.y = highestCollisionY + playerHalfHeight;
+					camera.isGrounded = true;
+					camera.Velocity.y = 0.0f;
+				} else {
+					// Collision from below (ceiling)
+					newPosition.y = camera.Position.y;
+					camera.Velocity.y = 0.0f;
+				}
+			}
+
+
+			if (collisionX) newPosition.x = camera.Position.x;
+			if (collisionZ) newPosition.z = camera.Position.z;
 
 			// Update final camera position
 			camera.Position = newPosition;
