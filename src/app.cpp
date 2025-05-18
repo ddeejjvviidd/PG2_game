@@ -408,12 +408,12 @@ bool App::checkFloorCollision(const glm::vec3 &position, float playerHalfHeight,
 
 		if (floorModel.type == Model::FLAT_FLOOR)
 		{
-			float minX = floorModel.origin.x - floorModel.width / 4; // + 7.5; //- camera.playerRadius;
-			float maxX = floorModel.origin.x + floorModel.width / 4; // - 7.5; //+ camera.playerRadius;
-			float minZ = floorModel.origin.z - floorModel.depth / 4; // + 7.5; //- camera.playerRadius;
-			float maxZ = floorModel.origin.z + floorModel.depth / 4; // - 7.5; //+ camera.playerRadius;
-			// std::cout << "minX: " << minX << ", maxX: " << maxX << ", minZ: " << minZ << ", maxZ: " << maxZ << std::endl;
-			std::cout << "width: " << floorModel.width << ", depth: " << floorModel.depth << std::endl;
+			float minX = floorModel.origin.x - floorModel.width / 4;// + 7.5; //- camera.playerRadius;
+			float maxX = floorModel.origin.x + floorModel.width / 4;// - 7.5; //+ camera.playerRadius;
+			float minZ = floorModel.origin.z - floorModel.depth / 4;// + 7.5; //- camera.playerRadius;
+			float maxZ = floorModel.origin.z + floorModel.depth / 4;// - 7.5; //+ camera.playerRadius;
+			//std::cout << "minX: " << minX << ", maxX: " << maxX << ", minZ: " << minZ << ", maxZ: " << maxZ << std::endl;
+			//std::cout << "width: " << floorModel.width << ", depth: " << floorModel.depth << std::endl;
 			// Check flat floor collision
 			if (position.x >= minX && position.x <= maxX &&
 				position.z >= minZ && position.z <= maxZ)
@@ -430,7 +430,7 @@ bool App::checkFloorCollision(const glm::vec3 &position, float playerHalfHeight,
 				position.z >= floorModel.origin.z - floorModel.depth / 4 &&
 				position.z <= floorModel.origin.z + floorModel.depth / 4)
 			{
-				currentFloorY = floorModel.origin.y + floorModel.getHeightAt(position.x, position.z) + 0.55f;
+				currentFloorY = floorModel.origin.y + floorModel.getHeightAt(position.x, position.z);
 			}
 		}
 

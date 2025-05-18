@@ -129,7 +129,10 @@ public:
 
     // Heightmap constructor
     Model(const std::string &heightmapPath, ShaderProgram shader, const std::string &texturePath, int width, int depth, float heightScale)
-        : shader(shader), name("heightmap"), type(HEIGHTMAP), width(static_cast<float>(width)), depth(static_cast<float>(depth)), heightScale(heightScale)
+        : shader(shader), name("heightmap"), type(HEIGHTMAP), 
+        width(static_cast<float>(width - 1)),
+        depth(static_cast<float>(depth - 1)),
+        heightScale(heightScale)
     {
         cv::Mat heightmap = cv::imread(heightmapPath, cv::IMREAD_GRAYSCALE);
         if (heightmap.empty())
@@ -268,8 +271,8 @@ public:
         v = glm::clamp(v, 0.0f, 1.0f);
 
         // Calculate exact position in height data
-        float xPos = u * (width - 1);
-        float zPos = v * (depth - 1);
+        float xPos = u * (width);
+        float zPos = v * (depth);
 
         // Bilinear interpolation
         int x0 = static_cast<int>(xPos);
