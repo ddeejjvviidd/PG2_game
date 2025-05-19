@@ -548,14 +548,14 @@ int App::run(void)
 
 			// Player collision parameters
 			const float playerHalfHeight = camera.playerHeight / 2.0f;
-			const glm::vec3 playerSize(camera.playerRadius, playerHalfHeight, camera.playerRadius);
+			const glm::vec3 playerSize(camera.playerRadius, camera.playerHeight, camera.playerRadius);
 
 			// Floor collision
 			float floorHeight;
 			if (checkFloorCollision(newPosition, playerHalfHeight, floorHeight))
 			{
 				// Snap to floor and stop vertical movement
-				newPosition.y = floorHeight + playerHalfHeight;
+				newPosition.y = floorHeight + playerHalfHeight;//camera.playerHeight;
 				camera.Velocity.y = 0.0f;
 				camera.isGrounded = true;
 			}
@@ -578,17 +578,19 @@ int App::run(void)
 				glm::vec3 modelMin = model.origin - glm::vec3(0.5f);
 				glm::vec3 modelMax = model.origin + glm::vec3(0.5f);
 
-				glm::vec3 playerMin = yCheckPos - playerSize;
-				glm::vec3 playerMax = yCheckPos + playerSize;
+				glm::vec3 playerMin = yCheckPos - glm::vec3(0.0f, 2*camera.playerHeight, 0.0f);
+				glm::vec3 playerMax = yCheckPos + playerSize; // + glm::vec3(0.0f, camera.playerHeight, 0.0f);
 
-				bool overlap = (playerMax.x > modelMin.x && playerMin.x < modelMax.x) &&
-							(playerMax.y > modelMin.y && playerMin.y < modelMax.y) &&
-							(playerMax.z > modelMin.z && playerMin.z < modelMax.z);
+				bool overlapX = (playerMax.x > modelMin.x && playerMin.x < modelMax.x);
+				bool overlapY = (playerMax.y > modelMin.y && playerMin.y < modelMax.y);
+				bool overlapZ = (playerMax.z > modelMin.z && playerMin.z < modelMax.z);
+
+				bool overlap = overlapX && overlapY && overlapZ;
 
 				if (overlap) {
 					collisionY = true;
 					if (modelMax.y > highestCollisionY) {
-						highestCollisionY = modelMax.y;
+						highestCollisionY = modelMax.y + camera.playerHeight;
 					}
 				}
 			}
@@ -597,7 +599,7 @@ int App::run(void)
 			if (collisionY) {
 				if (camera.Velocity.y < 0.0f) {
 					// Land on the object's top
-					newPosition.y = highestCollisionY + playerHalfHeight;
+					newPosition.y = highestCollisionY + camera.playerHeight;// + camera.playerHeight;
 					camera.isGrounded = true;
 					camera.Velocity.y = 0.0f;
 				} else {
@@ -606,7 +608,6 @@ int App::run(void)
 					camera.Velocity.y = 0.0f;
 				}
 			}
-
 
 			if (collisionX) newPosition.x = camera.Position.x;
 			if (collisionZ) newPosition.z = camera.Position.z;
